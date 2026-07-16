@@ -97,6 +97,16 @@ function onPopupOperatorClick(operator) {
   query.value = operator
 }
 
+// 停留所ポップアップ内の「運行会社名＋系統名」部分（クリック可能）を生成
+function buildStopSubLabel(stop) {
+  const routesHtml = stop.routes.length
+    ? stop.routes
+        .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}">${escapeHtml(rt)}</span>`)
+        .join('<br>')
+    : '（系統情報なし）'
+  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
+}
+
 function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${stop.kana}</p>` : ''
   const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
@@ -143,7 +153,7 @@ function renderHighlight(route) {
       fillColor: '#f87171',
       fillOpacity: 0.95
     })
-    marker.bindPopup(buildPopupHtml(stop, `${route.operator} / ${route.route}`), { maxWidth: 320 })
+    marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
     marker.on('mouseover', function () { this.openPopup() })
     marker.on('mouseout', function () { this.closePopup() })
     marker.addTo(highlightLayer)
@@ -218,13 +228,7 @@ onMounted(async () => {
       fillOpacity: 0.85
     })
 
-    const routesHtml = stop.routes.length
-      ? stop.routes
-          .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}">${escapeHtml(rt)}</span>`)
-          .join('<br>')
-      : '（系統情報なし）'
-    const operatorHtml = `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
-    marker.bindPopup(buildPopupHtml(stop, operatorHtml), { maxWidth: 320 })
+    marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
 
     marker.on('mouseover', function () { this.openPopup() })
     marker.on('mouseout', function () { this.closePopup() })
