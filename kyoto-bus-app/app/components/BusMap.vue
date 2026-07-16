@@ -75,6 +75,31 @@ function selectRoute(r) {
   renderHighlight(r)
 }
 
+function buildPopupHtml(stop, subLabel) {
+  const kanaHtml = stop.kana ? `<p class="stop-kana">${stop.kana}</p>` : ''
+  const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
+  const linkHtml = stop.url
+    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
+    : ''
+
+  const lat = stop.lat
+  const lng = stop.lng
+  const externalLinksHtml = `
+    <div class="stop-external-links">
+      <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16" target="_blank" rel="noopener">📍 Google Maps</a>
+      <a href="https://earth.google.com/web/@${lat},${lng},0a,1000d" target="_blank" rel="noopener">📍 Google Earth</a>
+      <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
+    </div>`
+
+  return `<div class="stop-popup">
+    <p class="stop-name">${stop.name}</p>
+    ${kanaHtml}
+    ${subLabelHtml}
+    ${linkHtml}
+    ${externalLinksHtml}
+  </div>`
+}
+
 function renderHighlight(route) {
   if (!map) return
   highlightLayer.clearLayers()
@@ -95,10 +120,7 @@ function renderHighlight(route) {
       fillColor: '#f87171',
       fillOpacity: 0.95
     })
-    const linkHtml = stop.url
-      ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">時刻表を見る</a></p>`
-      : ''
-    marker.bindPopup(`<div class="stop-popup"><p class="stop-name">${stop.name}</p><p class="stop-kana">${route.operator} / ${route.route}</p>${linkHtml}</div>`)
+    marker.bindPopup(buildPopupHtml(stop, `${route.operator} / ${route.route}`), { maxWidth: 320 })
     marker.on('mouseover', function () { this.openPopup() })
     marker.on('mouseout', function () { this.closePopup() })
     marker.addTo(highlightLayer)
@@ -156,11 +178,8 @@ onMounted(async () => {
     })
 
     const routesLabel = stop.routes.length ? stop.routes.join('、') : '（系統情報なし）'
-    const linkHtml = stop.url
-      ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">時刻表を見る</a></p>`
-      : ''
-    const popupHtml = `<div class="stop-popup"><p class="stop-name">${stop.name}</p><p class="stop-kana">${stop.operator}</p><p class="stop-routes">${routesLabel}</p>${linkHtml}</div>`
-    marker.bindPopup(popupHtml)
+    const operatorHtml = `${stop.operator}<br><span class="stop-routes-inline">${routesLabel}</span>`
+    marker.bindPopup(buildPopupHtml(stop, operatorHtml), { maxWidth: 320 })
 
     marker.on('mouseover', function () { this.openPopup() })
     marker.on('mouseout', function () { this.closePopup() })
@@ -311,6 +330,16 @@ onMounted(async () => {
   color: #444;
 }
 
+:deep(.stop-sub) {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #444;
+}
+
+:deep(.stop-routes-inline) {
+  color: #666;
+}
+
 :deep(.stop-link) {
   margin: 4px 0 0;
 }
@@ -318,6 +347,25 @@ onMounted(async () => {
 :deep(.stop-link a) {
   color: #1d4ed8;
   font-size: 12px;
+  text-decoration: underline;
+}
+
+:deep(.stop-external-links) {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:deep(.stop-external-links a) {
+  color: #1d4ed8;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+:deep(.stop-external-links a:hover) {
   text-decoration: underline;
 }
 </style>
