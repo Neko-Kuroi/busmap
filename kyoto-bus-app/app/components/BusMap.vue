@@ -445,23 +445,3 @@ onMounted(async () => {
   text-decoration: underline;
 }
 </style>
-
-:deep(.stop-external-links) {
-  margin-top: 6px;
-  padding-top: 4px;
-  border-top: 1px solid #eee;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-:deep(.stop-external-links a) {
-  color: #1d4ed8;
-  font-size: 11px;
-  text-decoration: none;
-}
-
-:deep(.stop-external-links a:hover) {
-  text-decoration: underline;
-}
-</style>
