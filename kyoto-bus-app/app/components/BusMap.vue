@@ -75,6 +75,28 @@ function selectRoute(r) {
   renderHighlight(r)
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+// ポップアップ内の系統名クリック → 検索欄にセットし、その系統を選択状態にする
+function onPopupRouteClick(operator, route) {
+  const match = allRoutes.find(r => r.operator === operator && r.route === route)
+  if (!match) return
+  query.value = route
+  selectRoute(match)
+}
+
+// ポップアップ内の運行会社名クリック → 検索欄にセットするのみ（選択状態は変更しない）
+function onPopupOperatorClick(operator) {
+  query.value = operator
+}
+
 function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${stop.kana}</p>` : ''
   const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
@@ -137,6 +159,19 @@ onMounted(async () => {
     center: [35.011, 135.768], // 京都御所付近
     zoom: 12
   })
+
+  // ポップアップ内の系統名・運行会社名クリックをイベント委譲で処理
+  mapEl.value.addEventListener('click', (e) => {
+    const routeEl = e.target.closest('.route-link')
+    if (routeEl) {
+      onPopupRouteClick(routeEl.dataset.operator, routeEl.dataset.route)
+      return
+    }
+    const operatorEl = e.target.closest('.operator-link')
+    if (operatorEl) {
+      onPopupOperatorClick(operatorEl.dataset.operator)
+    }
+  })
   
   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
     attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
@@ -183,8 +218,12 @@ onMounted(async () => {
       fillOpacity: 0.85
     })
 
-    const routesLabel = stop.routes.length ? stop.routes.join('、') : '（系統情報なし）'
-    const operatorHtml = `${stop.operator}<br><span class="stop-routes-inline">${routesLabel}</span>`
+    const routesHtml = stop.routes.length
+      ? stop.routes
+          .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}">${escapeHtml(rt)}</span>`)
+          .join('<br>')
+      : '（系統情報なし）'
+    const operatorHtml = `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
     marker.bindPopup(buildPopupHtml(stop, operatorHtml), { maxWidth: 320 })
 
     marker.on('mouseover', function () { this.openPopup() })
@@ -344,6 +383,19 @@ onMounted(async () => {
 
 :deep(.stop-routes-inline) {
   color: #666;
+}
+
+:deep(.route-link),
+:deep(.operator-link) {
+  cursor: pointer;
+  color: #1d4ed8;
+  text-decoration: underline dotted;
+}
+
+:deep(.route-link:hover),
+:deep(.operator-link:hover) {
+  color: #dc2626;
+  text-decoration: underline;
 }
 
 :deep(.stop-link) {
