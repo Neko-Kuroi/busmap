@@ -81,6 +81,23 @@ function stopRadius(zoom, isHighlight) {
   return isHighlight ? base + 3 : base
 }
 
+// 選択中の系統の停留所用：星形アイコン（サイズはズームに応じて可変）
+function createStarIcon(zoom) {
+  const size = stopRadius(zoom, true) * 2.2
+  const half = size / 2
+  const html = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
+      fill="#f87171" stroke="#dc2626" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>`
+  return window.__L.divIcon({
+    html,
+    className: 'stop-star-icon',
+    iconSize: [size, size],
+    iconAnchor: [half, half],
+    popupAnchor: [0, -half]
+  })
+}
+
 function escapeHtml(str) {
   return String(str)
     .replaceAll('&', '&amp;')
@@ -142,7 +159,7 @@ function buildPopupHtml(stop, subLabel) {
 function renderHighlight(route) {
   if (!map) return
   highlightLayer.clearLayers()
-  baseLayer.eachLayer(l => l.setStyle({ opacity: route ? 0.55 : 0.9, fillOpacity: route ? 0.5 : 0.85 }))
+  baseLayer.eachLayer(l => l.setStyle({ opacity: route ? 0.3 : 0.9, fillOpacity: route ? 0.25 : 0.85 }))
 
   if (!route) return
 
@@ -153,12 +170,8 @@ function renderHighlight(route) {
     const stop = stopsById[id]
     if (!stop) continue
     bounds.push([stop.lat, stop.lng])
-    const marker = L.circleMarker([stop.lat, stop.lng], {
-      radius: stopRadius(zoom, true),
-      weight: 2,
-      color: '#dc2626',
-      fillColor: '#f87171',
-      fillOpacity: 0.95
+    const marker = L.marker([stop.lat, stop.lng], {
+      icon: createStarIcon(zoom)
     })
     marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
     marker.on('mouseover', function () { this.openPopup() })
@@ -190,11 +203,11 @@ onMounted(async () => {
     }
   })
 
-  // ズーム変化に応じてマーカー半径を再計算（ズームインしても小さくなりすぎないように）
+  // ズーム変化に応じてマーカーサイズを再計算（ズームインしても小さくなりすぎないように）
   map.on('zoomend', () => {
     const z = map.getZoom()
     if (baseLayer) baseLayer.eachLayer(l => l.setRadius(stopRadius(z, false)))
-    if (highlightLayer) highlightLayer.eachLayer(l => l.setRadius(stopRadius(z, true)))
+    if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
   
   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
@@ -370,6 +383,16 @@ onMounted(async () => {
   padding: 3px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+:deep(.stop-star-icon) {
+  background: transparent;
+  border: none;
+}
+
+:deep(.stop-star-icon) svg {
+  display: block;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
 }
 
 :deep(.stop-popup) {
