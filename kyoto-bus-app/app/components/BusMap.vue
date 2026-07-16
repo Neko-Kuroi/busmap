@@ -136,11 +136,16 @@ onMounted(async () => {
     center: [35.011, 135.768], // 京都御所付近
     zoom: 12
   })
+  
+  L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+    attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+    maxZoom: 22
+  }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(map)
+  //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  //  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+  //  maxZoom: 19
+  //}).addTo(map)
 
   // 事業者単位のバスルート線（背景・薄いグレー、系統別ではない）
   fetch('/data/route_lines.geojson')
