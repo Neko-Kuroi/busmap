@@ -51,6 +51,9 @@ let map = null
 let baseLayer = null
 let highlightLayer = null
 let stopsById = {}
+let markersById = {}
+let hiddenMarkerIds = []
+let canvasRenderer = null
 
 const filteredRoutes = computed(() => {
   const q = query.value.trim()
@@ -83,11 +86,11 @@ function stopRadius(zoom, isHighlight) {
 
 // 選択中の系統の停留所用：星形アイコン（サイズはズームに応じて可変）
 function createStarIcon(zoom) {
-  const size = stopRadius(zoom, true) * 2.2
+  const size = stopRadius(zoom, true) * 3.2
   const half = size / 2
   const html = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
-      fill="#f87171" stroke="#dc2626" stroke-width="1.4" stroke-linejoin="round"/>
+      fill="#f9a8d4" stroke="#db2777" stroke-width="1.4" stroke-linejoin="round"/>
   </svg>`
   return window.__L.divIcon({
     html,
@@ -159,9 +162,21 @@ function buildPopupHtml(stop, subLabel) {
 function renderHighlight(route) {
   if (!map) return
   highlightLayer.clearLayers()
-  baseLayer.eachLayer(l => l.setStyle({ opacity: route ? 0.3 : 0.9, fillOpacity: route ? 0.25 : 0.85 }))
 
-  if (!route) return
+  // 前回、星の下に隠すため非表示にしていた黄丸を元に戻す
+  for (const id of hiddenMarkerIds) {
+    const m = markersById[id]
+    if (m) m.setStyle({ opacity: 0.7, fillOpacity: 0.6 })
+  }
+  hiddenMarkerIds = []
+
+  if (!route) {
+    baseLayer.eachLayer(l => l.setStyle({ opacity: 0.7, fillOpacity: 0.6 }))
+    return
+  }
+
+  // 選択中の系統以外の停留所を薄くする
+  baseLayer.eachLayer(l => l.setStyle({ opacity: 0.4, fillOpacity: 0.35 }))
 
   const L = window.__L
   const zoom = map.getZoom()
@@ -170,6 +185,14 @@ function renderHighlight(route) {
     const stop = stopsById[id]
     if (!stop) continue
     bounds.push([stop.lat, stop.lng])
+
+    // 星アイコンの下に青丸が二重に残らないよう、完全に非表示にする
+    const baseMarker = markersById[id]
+    if (baseMarker) {
+      baseMarker.setStyle({ opacity: 0, fillOpacity: 0 })
+      hiddenMarkerIds.push(id)
+    }
+
     const marker = L.marker([stop.lat, stop.lng], {
       icon: createStarIcon(zoom)
     })
@@ -215,6 +238,10 @@ onMounted(async () => {
     maxZoom: 22
   }).addTo(map);
 
+  // 4685件の停留所を1枚のcanvasにまとめて描画する（SVGだと停留所ごとにDOM要素が
+  // 生成され、画面外に出ても消えずに残り続けるため、タップ→ポップアップのラグの原因になる）
+  canvasRenderer = L.canvas({ padding: 0.5 })
+
   //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   //  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
   //  maxZoom: 19
@@ -248,11 +275,13 @@ onMounted(async () => {
 
   for (const stop of stops) {
     const marker = L.circleMarker([stop.lat, stop.lng], {
+      renderer: canvasRenderer,
       radius: stopRadius(map.getZoom(), false),
       weight: 1,
-      color: '#1d4ed8',
-      fillColor: '#3b82f6',
-      fillOpacity: 0.85
+      color: '#d4e100',
+      fillColor: '#eaff00',
+      opacity: 0.7,
+      fillOpacity: 0.6
     })
 
     marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
@@ -261,6 +290,7 @@ onMounted(async () => {
     marker.on('mouseout', function () { this.closePopup() })
 
     marker.addTo(baseLayer)
+    markersById[stop.id] = marker
   }
 
   baseLayer.addTo(map)
