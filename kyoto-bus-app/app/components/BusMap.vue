@@ -75,6 +75,12 @@ function selectRoute(r) {
   renderHighlight(r)
 }
 
+// ズームレベルに応じたマーカー半径（ズームインしても小さくなりすぎないよう下限を確保しつつ、ズームに応じて拡大）
+function stopRadius(zoom, isHighlight) {
+  const base = Math.max(6, Math.min(14, zoom - 6))
+  return isHighlight ? base + 3 : base
+}
+
 function escapeHtml(str) {
   return String(str)
     .replaceAll('&', '&amp;')
@@ -136,18 +142,19 @@ function buildPopupHtml(stop, subLabel) {
 function renderHighlight(route) {
   if (!map) return
   highlightLayer.clearLayers()
-  baseLayer.eachLayer(l => l.setStyle({ opacity: route ? 0.15 : 0.9, fillOpacity: route ? 0.1 : 0.85 }))
+  baseLayer.eachLayer(l => l.setStyle({ opacity: route ? 0.55 : 0.9, fillOpacity: route ? 0.5 : 0.85 }))
 
   if (!route) return
 
   const L = window.__L
+  const zoom = map.getZoom()
   const bounds = []
   for (const id of route.stopIds) {
     const stop = stopsById[id]
     if (!stop) continue
     bounds.push([stop.lat, stop.lng])
     const marker = L.circleMarker([stop.lat, stop.lng], {
-      radius: 7,
+      radius: stopRadius(zoom, true),
       weight: 2,
       color: '#dc2626',
       fillColor: '#f87171',
@@ -181,6 +188,13 @@ onMounted(async () => {
     if (operatorEl) {
       onPopupOperatorClick(operatorEl.dataset.operator)
     }
+  })
+
+  // ズーム変化に応じてマーカー半径を再計算（ズームインしても小さくなりすぎないように）
+  map.on('zoomend', () => {
+    const z = map.getZoom()
+    if (baseLayer) baseLayer.eachLayer(l => l.setRadius(stopRadius(z, false)))
+    if (highlightLayer) highlightLayer.eachLayer(l => l.setRadius(stopRadius(z, true)))
   })
   
   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
@@ -221,7 +235,7 @@ onMounted(async () => {
 
   for (const stop of stops) {
     const marker = L.circleMarker([stop.lat, stop.lng], {
-      radius: 4,
+      radius: stopRadius(map.getZoom(), false),
       weight: 1,
       color: '#1d4ed8',
       fillColor: '#3b82f6',
@@ -411,6 +425,26 @@ onMounted(async () => {
   font-size: 12px;
   text-decoration: underline;
 }
+
+:deep(.stop-external-links) {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:deep(.stop-external-links a) {
+  color: #1d4ed8;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+:deep(.stop-external-links a:hover) {
+  text-decoration: underline;
+}
+</style>
 
 :deep(.stop-external-links) {
   margin-top: 6px;
