@@ -89,7 +89,7 @@ function createStarIcon(zoom) {
   const half = size / 2
   const html = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path class="star-glow-path" d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
-      fill="#f9a8d4" stroke="#db2777" stroke-width="1.4" stroke-linejoin="round"/>
+      fill="#db2777" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
   </svg>`
   return window.__L.divIcon({
     html,
@@ -215,7 +215,7 @@ function buildPopupHtml(stop, subLabel) {
 }
 
 // 通常表示時／薄く表示する時のマーカー不透明度
-const BASE_OPACITY = 0.85
+const BASE_OPACITY = 0.45
 const DIMMED_OPACITY = 0.3
 
 function renderHighlight(route, anchorStopId) {
@@ -293,7 +293,7 @@ onMounted(async () => {
 
   map = L.map(mapEl.value, {
     center: [35.011, 135.768], // 京都御所付近
-    zoom: 12
+    zoom: 14
   })
 
   // ポップアップが開いたら、その要素自体にカーソルが乗っている間は
@@ -341,7 +341,7 @@ onMounted(async () => {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 22,
-      opacity: 0.14
+      opacity: 0.2
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -382,8 +382,11 @@ onMounted(async () => {
     ? L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 60,
-        disableClusteringAtZoom: 14,
-        spiderfyOnMaxZoom: true,
+        disableClusteringAtZoom: 15,
+        // クラスタを放射状に展開(スパイダーファイ)すると停留所が実際とは
+        // 違う位置に配置され、つなぎの線も表示されて紛らわしいため無効化。
+        // クリック時は zoomToBoundsOnClick（デフォルト有効）でズームインするのみにする
+        spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
         iconCreateFunction: createClusterIcon
       })
@@ -545,18 +548,18 @@ onMounted(async () => {
 @keyframes star-glow {
   0% {
     stroke-width: 1.4;
-    stroke-opacity: 0.7;
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35)) brightness(1);
+    stroke-opacity: 0.6;
+    filter: drop-shadow(0 0 13pxpx rgba(157, 23, 77, 0.45));
   }
   50% {
-    stroke-width: 3;
+    stroke-width: 1.8;
     stroke-opacity: 1;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.95)) brightness(1.35);
+    filter: drop-shadow(0 0 3px rgba(157, 23, 77, 0.6));
   }
   100% {
     stroke-width: 1.4;
-    stroke-opacity: 0.7;
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35)) brightness(1);
+    stroke-opacity: 0.6;
+    filter: drop-shadow(0 0 1px rgba(157, 23, 77, 0.45));
   }
 }
 
@@ -581,13 +584,13 @@ onMounted(async () => {
 :deep(.stop-cluster-dot) {
   display: block;
   border-radius: 50%;
-  background: rgba(234, 255, 0, 0.5);
-  border: 2px solid rgba(168, 184, 0, 0.6);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  background: rgba(234, 255, 0, 0.35);
+  border: 1px solid rgba(168, 184, 0, 0.45);
+  
   text-align: center;
   font-weight: 700;
-  font-size: 12px;
-  color: #3a3a00;
+  font-size: 14px;
+  color: #eaff00;
 }
 
 :deep(.stop-popup) {
