@@ -2,5 +2,9 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  css: ['leaflet/dist/leaflet.css']
+  css: [
+    'leaflet/dist/leaflet.css',
+    'leaflet.markercluster/dist/MarkerCluster.css',
+    'leaflet.markercluster/dist/MarkerCluster.Default.css'
+  ]
 })
