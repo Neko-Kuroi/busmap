@@ -11,7 +11,7 @@
         class="search"
         type="text"
         v-model="query"
-        placeholder="系統名・事業者名で検索（例: 洛北高校、17、京都バス）"
+        placeholder="系統名・事業者名・停留所名（ひらがな可）で検索"
       />
 
       <div class="route-list" v-if="query">
@@ -24,8 +24,11 @@
         >
           <span class="route-name">{{ r.route }}</span>
           <span class="route-operator">{{ r.operator }}（{{ r.count }}件）</span>
+          <span class="route-matched-stop" v-if="r.matchedStopNames.length">
+            🚏 {{ r.matchedStopNames.join('、') }}
+          </span>
         </button>
-        <p class="no-hit" v-if="filteredRoutes.length === 0">該当する系統がありません</p>
+        <p class="no-hit" v-if="filteredRoutes.length === 0">該当する系統・停留所がありません</p>
       </div>
 
       <div class="selected" v-if="selectedRoute">
@@ -54,12 +57,56 @@ let stopsById = {}
 let markersById = {}
 let hiddenMarkerIds = []
 
+// 「系統名・事業者名」に加えて「停留所名・ひらがな読み」でも検索できるようにする。
+// ひらがな読み(kana)は元データに用意されているものだけを対象にし、
+// 自動生成(pykakashiなど)は地名変換の精度が低かったため行わない。
+// 停留所名にヒットした場合は、その停留所を含む系統も検索結果に含める。
 const filteredRoutes = computed(() => {
   const q = query.value.trim()
   if (!q) return []
-  return allRoutes
-    .filter(r => r.route.includes(q) || r.operator.includes(q))
-    .slice(0, 40)
+
+  const seenKeys = new Set()
+  const result = []
+
+  // 1) 系統名・事業者名で直接マッチする系統
+  for (const r of allRoutes) {
+    if (r.route.includes(q) || r.operator.includes(q)) {
+      const key = r.operator + '||' + r.route
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key)
+        result.push({ ...r, matchedStopNames: [] })
+      }
+    }
+  }
+
+  // 2) 停留所名・ひらがな読みでマッチする停留所を探す
+  const matchedStopIds = new Set()
+  for (const id in stopsById) {
+    const s = stopsById[id]
+    if (s.name.includes(q) || (s.kana && s.kana.includes(q))) {
+      matchedStopIds.add(s.id)
+    }
+  }
+
+  // 3) その停留所を含む系統を検索結果に追加（どの停留所名でヒットしたか付記する）
+  if (matchedStopIds.size) {
+    for (const r of allRoutes) {
+      const key = r.operator + '||' + r.route
+      if (seenKeys.has(key)) continue
+      const hitNames = [...new Set(
+        r.stopIds
+          .filter(id => matchedStopIds.has(id))
+          .map(id => stopsById[id]?.name)
+          .filter(Boolean)
+      )]
+      if (hitNames.length) {
+        seenKeys.add(key)
+        result.push({ ...r, matchedStopNames: hitNames })
+      }
+    }
+  }
+
+  return result.slice(0, 40)
 })
 
 function isActive(r) {
@@ -327,11 +374,18 @@ onMounted(async () => {
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
   
-  L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
-    attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
-    maxZoom: 22
-  }).addTo(map);
+  //L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+  //  attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+  //  maxZoom: 22
+  //}).addTo(map);
 
+  
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+    maxZoom: 22
+  }).addTo(map)
+  
   try {
     // lyrs=m: Standard Roadmap（通常の地図）
     // lyrs=s: Satellite only（航空写真のみ、文字なし）
@@ -346,11 +400,6 @@ onMounted(async () => {
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
-
-  //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  //  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-  //  maxZoom: 19
-  //}).addTo(map)
 
   // 事業者単位のバスルート線（背景・薄いグレー、系統別ではない）
   fetch('/data/route_lines.geojson')
@@ -500,6 +549,12 @@ onMounted(async () => {
   color: #666;
 }
 
+.route-matched-stop {
+  font-size: 11px;
+  color: #0d9488;
+  margin-top: 2px;
+}
+
 .no-hit {
   color: #888;
   font-size: 12px;
@@ -549,7 +604,7 @@ onMounted(async () => {
   0% {
     stroke-width: 1.4;
     stroke-opacity: 0.6;
-    filter: drop-shadow(0 0 13pxpx rgba(157, 23, 77, 0.45));
+    filter: drop-shadow(0 0 1px rgba(157, 23, 77, 0.45));
   }
   50% {
     stroke-width: 1.8;
