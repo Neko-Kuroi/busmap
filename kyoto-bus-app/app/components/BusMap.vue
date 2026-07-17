@@ -235,6 +235,7 @@ function buildStopSubLabel(stop) {
   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
 }
 
+
 function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
@@ -244,6 +245,22 @@ function buildPopupHtml(stop, subLabel) {
 
   const lat = stop.lat
   const lng = stop.lng
+
+  // ストリートビューの写真をポップアップ内に埋め込む（Google Maps Embed形式）。
+  // 参考にしてもらった単体コンポーネントと同じ pb= 形式で、APIキー不要で使える。
+  // heading/pitch/fov は既存の「Street View」外部リンクと合わせてある。
+  //src="https://www.google.com/maps/embed?pb=!4v${Date.now()}!6m8!1m7!1s!2m2!1d${lat}!2d${lng}!3f180!4f0!5f0.9"
+const streetViewHtml = `<div class="stop-streetview">
+  <iframe
+    src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3266.5!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2z${lat.toFixed(1).replace('.', '')}z${lng.toFixed(1).replace('.', '')}!5e0!3m2!1sja!2sjp!4v${Date.now()}!5m2!1sja!2sjp"
+    width="100%" 
+    height="100%" 
+    style="border:0;" 
+    loading="lazy" 
+    allowfullscreen>
+  </iframe>
+</div>`
+
   const externalLinksHtml = `
     <div class="stop-external-links">
       <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16" target="_blank" rel="noopener">📍 Google Maps</a>
@@ -257,6 +274,7 @@ function buildPopupHtml(stop, subLabel) {
     <p class="stop-name">${escapeHtml(stop.name)}</p>
     ${kanaHtml}
     ${subLabelHtml}
+    ${streetViewHtml}
     ${linkHtml}
     ${externalLinksHtml}
   </div>`
