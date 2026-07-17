@@ -56,6 +56,8 @@ let highlightLayer = null
 let stopsById = {}
 let markersById = {}
 let hiddenMarkerIds = []
+let dataBounds = null
+let userMarker = null
 
 // 「系統名・事業者名」に加えて「停留所名・ひらがな読み」でも検索できるようにする。
 // ひらがな読み(kana)は元データに用意されているものだけを対象にし、
@@ -179,6 +181,45 @@ function escapeHtml(str) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+// 現在地マーカー用のパルスアイコン（停留所のアイコンと見分けやすいよう青系のドット＋波紋）
+function createUserLocationIcon() {
+  return window.__L.divIcon({
+    html: `<span class="user-location-dot"><span class="user-location-pulse"></span></span>`,
+    className: 'user-location-icon',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  })
+}
+
+// ブラウザのGeolocation APIで現在地を取得し、地図上にプロットする。
+// このアプリは京都エリアのバス停を探すためのものなので、取得した現在地が
+// 実際の停留所データの分布範囲（dataBounds）の外にある場合はプロットしない
+// ＝京都にいないユーザーには現在地マーカーを出さない。
+function locateUser() {
+  if (!navigator.geolocation || !dataBounds) return
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords
+      if (!dataBounds.contains([latitude, longitude])) {
+        console.log('現在地は京都のバス停エリア外にゃ。現在地表示はスキップするにゃ。')
+        return
+      }
+      const L = window.__L
+      if (userMarker) userMarker.remove()
+      userMarker = L.marker([latitude, longitude], {
+        icon: createUserLocationIcon(),
+        zIndexOffset: 1000
+      }).addTo(map)
+      userMarker.bindPopup('現在地')
+      map.setView([latitude, longitude], 15)
+    },
+    (error) => {
+      console.error('位置情報の取得に失敗したにゃ:', error)
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
 }
 
 // ホバーでポップアップを開閉しつつ、カーソルがポップアップ内(系統名リンクなど)に
@@ -444,6 +485,11 @@ onMounted(async () => {
 
   for (const s of stops) stopsById[s.id] = s
 
+  // 実際の停留所データの分布範囲を「京都エリア」とみなす（都道府県境で
+  // 厳密に区切るのではなく、このアプリが対象とするバス停の分布範囲そのものを使う）
+  dataBounds = L.latLngBounds(stops.map(s => [s.lat, s.lng]))
+  locateUser()
+
   // 画面からはみ出た／密集している停留所は自動でクラスタリングしてアイコン数を
   // 減らし、描画・操作の負荷を下げる（chunkedLoading で4685件の初期追加も分割処理）
   // ※ プラグインが読み込めなかった場合は通常のlayerGroupにフォールバックする
@@ -666,6 +712,46 @@ onMounted(async () => {
   font-weight: 700;
   font-size: 12px;
   color: #eaff00;
+}
+
+:deep(.user-location-icon) {
+  background: transparent;
+  border: none;
+}
+
+:deep(.user-location-dot) {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 1px;
+  background: #2563eb;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+:deep(.user-location-pulse) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: rgba(37, 99, 235, 0.5);
+  border-radius: 50%;
+  animation: user-location-pulse 2s ease-out infinite;
+}
+
+@keyframes user-location-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
 }
 
 :deep(.stop-popup) {
