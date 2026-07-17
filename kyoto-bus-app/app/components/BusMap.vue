@@ -253,8 +253,8 @@ function buildPopupHtml(stop, subLabel) {
 const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3266.5!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2z${lat.toFixed(1).replace('.', '')}z${lng.toFixed(1).replace('.', '')}!5e0!3m2!1sja!2sjp!4v${Date.now()}!5m2!1sja!2sjp"
-    width="100%" 
-    height="100%" 
+    width="200" 
+    height="200" 
     style="border:0;" 
     loading="lazy" 
     allowfullscreen>
@@ -395,14 +395,14 @@ onMounted(async () => {
   
   //L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
   //  attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
-  //  maxZoom: 22
+  //  maxZoom: 21
   //}).addTo(map);
 
   
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-    maxZoom: 22
+    maxZoom: 21
   }).addTo(map)
   
   try {
@@ -411,10 +411,11 @@ onMounted(async () => {
     // lyrs=y: Hybrid（航空写真 ＋ 道路 ＋ 日本語ラベル）
     // lyrs=p: Terrain（地形図）
     // hl=ja: 言語を日本語に固定
+    
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
-      maxZoom: 22,
-      opacity: 0.4
+      maxZoom: 21,
+      opacity: 0.14
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -626,7 +627,7 @@ onMounted(async () => {
     filter: drop-shadow(0 0 1px rgba(157, 23, 77, 0.45));
   }
   50% {
-    stroke-width: 1.8;
+    stroke-width: 1.6;
     stroke-opacity: 1;
     filter: drop-shadow(0 0 3px rgba(100, 23, 77, 0.5));
   }
@@ -659,7 +660,7 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.35);
-  border: 1px solid rgba(168, 184, 0, 0.45);
+  border: 1px solid rgba(250, 250, 200, 0.45);
   
   text-align: center;
   font-weight: 700;
