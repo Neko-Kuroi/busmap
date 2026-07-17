@@ -247,6 +247,7 @@ function buildPopupHtml(stop, subLabel) {
   const externalLinksHtml = `
     <div class="stop-external-links">
       <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16" target="_blank" rel="noopener">📍 Google Maps</a>
+      <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
       <a href="https://earth.google.com/web/@${lat},${lng},0a,1000d" target="_blank" rel="noopener">📍 Google Earth</a>
       <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
@@ -395,7 +396,7 @@ onMounted(async () => {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 22,
-      opacity: 0.2
+      opacity: 0.4
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -609,7 +610,7 @@ onMounted(async () => {
   50% {
     stroke-width: 1.8;
     stroke-opacity: 1;
-    filter: drop-shadow(0 0 3px rgba(157, 23, 77, 0.6));
+    filter: drop-shadow(0 0 3px rgba(100, 23, 77, 0.5));
   }
   100% {
     stroke-width: 1.4;
@@ -644,7 +645,7 @@ onMounted(async () => {
   
   text-align: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   color: #eaff00;
 }
 
