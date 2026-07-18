@@ -14,6 +14,17 @@
         placeholder="系統名・事業者名・停留所名（ひらがな可）で検索"
       />
 
+      <button
+        v-if="geoSupported"
+        class="locate-btn"
+        @click="locateUser"
+        :disabled="locating"
+      >
+        📍 {{ locating ? '取得中…' : '現在地を表示' }}
+      </button>
+      <p class="geo-unsupported" v-else>このブラウザ・接続方法では現在地取得は使えません</p>
+      <p class="geo-error" v-if="geoError">{{ geoError }}</p>
+
       <div class="route-list" v-if="query">
         <button
           v-for="r in filteredRoutes"
@@ -48,6 +59,9 @@ const stopCount = ref(0)
 const routeCount = ref(0)
 const query = ref('')
 const selectedRoute = ref(null)
+const geoSupported = ref(false)
+const locating = ref(false)
+const geoError = ref('')
 
 let allRoutes = []
 let map = null
@@ -55,6 +69,7 @@ let baseLayer = null
 let highlightLayer = null
 let stopsById = {}
 let markersById = {}
+let highlightMarkersById = {}
 let hiddenMarkerIds = []
 let dataBounds = null
 let userMarker = null
@@ -132,10 +147,16 @@ function stopRadius(zoom, isHighlight) {
   return isHighlight ? base + 3 : base
 }
 
+// 星アイコンの半径（アイコンサイズの半分）。createStarIconとツールチップの
+// オフセット計算の両方で使うので共通化しておく
+function starIconHalf(zoom) {
+  return (stopRadius(zoom, true) * 3.2) / 2
+}
+
 // 選択中の系統の停留所用：星形アイコン（サイズはズームに応じて可変）
 function createStarIcon(zoom) {
-  const size = stopRadius(zoom, true) * 3.2
-  const half = size / 2
+  const half = starIconHalf(zoom)
+  const size = half * 2
   const html = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path class="star-glow-path" d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
       fill="#db2777" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
@@ -194,16 +215,29 @@ function createUserLocationIcon() {
 }
 
 // ブラウザのGeolocation APIで現在地を取得し、地図上にプロットする。
-// このアプリは京都エリアのバス停を探すためのものなので、取得した現在地が
-// 実際の停留所データの分布範囲（dataBounds）の外にある場合はプロットしない
-// ＝京都にいないユーザーには現在地マーカーを出さない。
+// ユーザーが「現在地を表示」ボタンを押した時だけ呼ばれる（無断で位置情報を
+// 取得しない）。このアプリは京都エリアのバス停を探すためのものなので、
+// 取得した現在地が実際の停留所データの分布範囲（dataBounds）の外にある
+// 場合はプロットしない＝京都にいないユーザーには現在地マーカーを出さない。
 function locateUser() {
-  if (!navigator.geolocation || !dataBounds) return
+  geoError.value = ''
+
+  if (!navigator.geolocation) {
+    geoError.value = 'このブラウザでは現在地取得に対応していません'
+    return
+  }
+  if (!dataBounds) {
+    geoError.value = '停留所データの読み込みが完了していません'
+    return
+  }
+
+  locating.value = true
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      locating.value = false
       const { latitude, longitude } = position.coords
       if (!dataBounds.contains([latitude, longitude])) {
-        console.log('現在地は京都のバス停エリア外にゃ。現在地表示はスキップするにゃ。')
+        geoError.value = '現在地が京都のバス停エリア外のため表示できません'
         return
       }
       const L = window.__L
@@ -216,6 +250,17 @@ function locateUser() {
       map.setView([latitude, longitude], 15)
     },
     (error) => {
+      locating.value = false
+      // PERMISSION_DENIED=1, POSITION_UNAVAILABLE=2, TIMEOUT=3
+      if (error.code === 1) {
+        geoError.value = '位置情報の利用が許可されませんでした'
+      } else if (error.code === 2) {
+        geoError.value = '現在地を取得できませんでした'
+      } else if (error.code === 3) {
+        geoError.value = '現在地の取得がタイムアウトしました'
+      } else {
+        geoError.value = '現在地の取得に失敗しました'
+      }
       console.error('位置情報の取得に失敗したにゃ:', error)
     },
     { enableHighAccuracy: true, timeout: 10000 }
@@ -276,6 +321,14 @@ function buildStopSubLabel(stop) {
   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
 }
 
+// 系統選択時、アンカー以外の星マーカーに常時表示する「小さいラベル」
+// (停留所名＋ひらがな読み[あれば])。Tooltip(permanent)を使うことで、
+// 既存のPopup(ホバー時のフル情報表示・アンカーの開きっぱなしポップアップ)の
+// autoClose挙動に一切影響を与えずに独立して表示できる。
+function buildMiniStopLabel(stop) {
+  const kanaHtml = stop.kana ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
+  return `<span class="stop-mini-name">${escapeHtml(stop.name)}</span>${kanaHtml}`
+}
 
 function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
@@ -287,20 +340,21 @@ function buildPopupHtml(stop, subLabel) {
   const lat = stop.lat
   const lng = stop.lng
 
-  // ストリートビューの写真をポップアップ内に埋め込む（Google Maps Embed形式）。
-  // 参考にしてもらった単体コンポーネントと同じ pb= 形式で、APIキー不要で使える。
-  // heading/pitch/fov は既存の「Street View」外部リンクと合わせてある。
-  //src="https://www.google.com/maps/embed?pb=!4v${Date.now()}!6m8!1m7!1s!2m2!1d${lat}!2d${lng}!3f180!4f0!5f0.9"
-const streetViewHtml = `<div class="stop-streetview">
+  // ストリートビューは停留所の座標にパノラマが無いと真っ黒になってしまうため、
+  // 代わりに座標さえあれば確実にその地点へピンが立つ「地図埋め込み」形式を使う。
+  // https://maps.google.com/maps?q=LAT,LNG&z=ZOOM&output=embed はAPIキー不要で
+  // 座標をそのまま渡せる、Googleの昔からある素の埋め込み形式。
+  const streetViewHtml = `<div class="stop-streetview">
   <iframe
-    src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3266.5!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2z${lat.toFixed(1).replace('.', '')}z${lng.toFixed(1).replace('.', '')}!5e0!3m2!1sja!2sjp!4v${Date.now()}!5m2!1sja!2sjp"
-    width="200" 
-    height="200" 
-    style="border:0;" 
-    loading="lazy" 
+    src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
+    width="200"
+    height="200"
+    style="border:0;"
+    loading="lazy"
     allowfullscreen>
   </iframe>
 </div>`
+
 
   const externalLinksHtml = `
     <div class="stop-external-links">
@@ -327,6 +381,7 @@ const DIMMED_OPACITY = 0.3
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
+  highlightMarkersById = {}
   highlightLayer.clearLayers()
 
   // 前回、星の下に隠すため非表示にしていた丸を元に戻す
@@ -346,6 +401,7 @@ function renderHighlight(route, anchorStopId) {
 
   const L = window.__L
   const zoom = map.getZoom()
+  const half = starIconHalf(zoom)
   const bounds = []
   let anchorMarker = null
   for (const id of route.stopIds) {
@@ -365,7 +421,23 @@ function renderHighlight(route, anchorStopId) {
     })
     marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
     bindHoverPopup(marker)
+
+    // どの停留所かを識別できるようマーカーに直接タグ付けしておく
+    // （map全体のpopupopen/popupcloseイベントから、この星かどうかを判定するため）
+    marker._highlightStopId = id
+
+    // まず全員に停留所名＋ひらがな読みの小さいラベルを付けておく。
+    // ポップアップが開いている星だけは、popupopenイベント側で自動的に
+    // このツールチップを外す（下のonMountedの map.on('popupopen', ...) 参照）
+    marker.bindTooltip(buildMiniStopLabel(stop), {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -half],
+      className: 'stop-mini-tooltip'
+    })
+
     marker.addTo(highlightLayer)
+    highlightMarkersById[id] = marker
 
     if (anchorStopId != null && String(id) === String(anchorStopId)) {
       anchorMarker = marker
@@ -375,7 +447,8 @@ function renderHighlight(route, anchorStopId) {
   if (anchorMarker) {
     // ポップアップ内の系統名クリックから来た場合：どの停留所を見ていたか
     // 見失わないよう、地図の中心・ズームは動かさず、同じ場所の星マーカーの
-    // ポップアップを開き直す
+    // ポップアップを開き直す（開いた瞬間、popupopenハンドラがこの星の
+    // ツールチップを自動的に外す）
     anchorMarker.openPopup()
   } else if (bounds.length) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
@@ -383,6 +456,14 @@ function renderHighlight(route, anchorStopId) {
 }
 
 onMounted(async () => {
+  // Geolocation APIはHTTPS(またはlocalhost)などのセキュアコンテキストでないと
+  // 使えない。navigator.geolocation自体が無いブラウザもあるため、両方チェックして
+  // ボタンを出すかどうかを決める（使えない環境ではボタンごと出さず、無言で
+  // 失敗させない）
+  geoSupported.value = typeof navigator !== 'undefined'
+    && !!navigator.geolocation
+    && (typeof window === 'undefined' || window.isSecureContext !== false)
+
   const L = await import('leaflet')
   window.__L = L
   // leaflet.markercluster は古いUMD形式で `import` ではなくグローバル変数
@@ -412,6 +493,32 @@ onMounted(async () => {
     if (!el || !marker) return
     el.addEventListener('mouseenter', cancelClose)
     el.addEventListener('mouseleave', () => scheduleClose(marker))
+
+    // 星マーカー（ハイライト中の系統の停留所）のポップアップが開いたら、
+    // その星だけ小さいラベル(ツールチップ)を一時的に外す。
+    // 「ポップアップが表示されているもの以外にツールチップが表示される」
+    // というルールを、系統選択直後だけでなく別の星に切り替えた時にも保つため。
+    if (marker._highlightStopId != null && marker.getTooltip()) {
+      marker.unbindTooltip()
+    }
+  })
+
+  // 星マーカーのポップアップが閉じたら（＝別の星に移った、または解除された）、
+  // まだ同じ系統内の星として現役なら、小さいラベルを付け直す
+  map.on('popupclose', (e) => {
+    const marker = e.popup._source
+    if (!marker || marker._highlightStopId == null) return
+    const id = marker._highlightStopId
+    if (highlightMarkersById[id] !== marker) return
+    if (marker.getTooltip()) return
+    const stop = stopsById[id]
+    if (!stop) return
+    marker.bindTooltip(buildMiniStopLabel(stop), {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -starIconHalf(map.getZoom())],
+      className: 'stop-mini-tooltip'
+    })
   })
 
   // ポップアップ内の系統名・運行会社名クリックをイベント委譲で処理
@@ -456,21 +563,21 @@ onMounted(async () => {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 21,
-      opacity: 0.14
+      opacity: 0.6
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
 
-  // 事業者単位のバスルート線（背景・薄いグレー、系統別ではない）
-  fetch('/data/route_lines.geojson')
-    .then(res => res.json())
-    .then(routeLines => {
-      L.geoJSON(routeLines, {
-        interactive: false,
-        style: { color: '#94a3b8', weight: 1.5, opacity: 0.5 }
-      }).addTo(map)
-    })
+  // 事業者単位のバスルート線　道路 // 事業者単位のバスルート線
+  //fetch('/data/route_lines.geojson')
+  //  .then(res => res.json())
+  //  .then(routeLines => {
+  //    L.geoJSON(routeLines, {
+  //      interactive: false,
+  //      style: { color: '#94a3b8', weight: 1.5, opacity: 0.5 }
+  //    }).addTo(map)
+  //  })
 
   const [stopsRes, routesRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
@@ -488,7 +595,6 @@ onMounted(async () => {
   // 実際の停留所データの分布範囲を「京都エリア」とみなす（都道府県境で
   // 厳密に区切るのではなく、このアプリが対象とするバス停の分布範囲そのものを使う）
   dataBounds = L.latLngBounds(stops.map(s => [s.lat, s.lng]))
-  locateUser()
 
   // 画面からはみ出た／密集している停留所は自動でクラスタリングしてアイコン数を
   // 減らし、描画・操作の負荷を下げる（chunkedLoading で4685件の初期追加も分割処理）
@@ -575,6 +681,40 @@ onMounted(async () => {
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 13px;
+}
+
+.locate-btn {
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.locate-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.locate-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.geo-unsupported {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.geo-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #dc2626;
 }
 
 .route-list {
@@ -752,6 +892,25 @@ onMounted(async () => {
     transform: scale(3);
     opacity: 0;
   }
+}
+
+:deep(.stop-mini-tooltip) {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: #fff;      /* ← 追加: 薄いピンクの背景 */
+  border-color: #fff;    /* ← 追加: 枠線も薄ピンクに揃える(任意) */
+}
+
+:deep(.stop-mini-name) {
+  font-weight: 700;
+  color: #111;
+}
+
+:deep(.stop-mini-kana) {
+  color: #666;
+  font-size: 10px;
 }
 
 :deep(.stop-popup) {
