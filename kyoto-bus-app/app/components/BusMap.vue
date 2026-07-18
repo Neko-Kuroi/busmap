@@ -47,11 +47,34 @@
         <button class="clear" @click="clearSelection">解除</button>
       </div>
     </div>
+
+    <div class="landmark-panel">
+      <div class="landmark-header">📍 ランドマークを追加</div>
+      <form class="landmark-form" @submit.prevent="addLandmark">
+        <input
+          class="landmark-input"
+          type="text"
+          v-model="landmarkAddress"
+          placeholder="住所を入力"
+          :disabled="geocoding"
+        />
+        <button
+          class="landmark-add-btn"
+          type="submit"
+          :disabled="geocoding || !landmarkAddress.trim()"
+        >
+          {{ geocoding ? '検索中…' : '追加' }}
+        </button>
+      </form>
+      <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
+      <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} 件登録中</p>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { normalize } from '@geolonia/normalize-japanese-addresses'
 
 const mapEl = ref(null)
 const loading = ref(true)
@@ -63,16 +86,26 @@ const geoSupported = ref(false)
 const locating = ref(false)
 const geoError = ref('')
 
+// ランドマーク機能：ユーザーが住所を入力→ジオコーディング→地図に追加。
+// localStorageに保存し、次回訪問時も復元する
+const landmarkAddress = ref('')
+const landmarkError = ref('')
+const geocoding = ref(false)
+const landmarks = ref([]) // [{id, address, lat, lng, level, createdAt}]
+
 let allRoutes = []
 let map = null
 let baseLayer = null
 let highlightLayer = null
+let landmarkLayer = null
 let stopsById = {}
 let markersById = {}
 let highlightMarkersById = {}
 let hiddenMarkerIds = []
 let dataBounds = null
 let userMarker = null
+
+const LANDMARK_STORAGE_KEY = 'kyoto-bus-app:landmarks'
 
 // 「系統名・事業者名」に加えて「停留所名・ひらがな読み」でも検索できるようにする。
 // ひらがな読み(kana)は元データに用意されているものだけを対象にし、
@@ -212,6 +245,134 @@ function createUserLocationIcon() {
     iconSize: [16, 16],
     iconAnchor: [8, 8]
   })
+}
+
+// ランドマーク用：ピン針型の自作SVGアイコン（バス停の丸ドット・星とは
+// 形状も色も明確に区別できるようにする）。サイズは固定（ズームに応じて
+// 可変にしているバス停アイコンとは異なり、常に一定の大きさで目立たせる）
+const LANDMARK_ICON_W = 30
+const LANDMARK_ICON_H = 40
+function createLandmarkIcon() {
+  const html = `<svg width="${LANDMARK_ICON_W}" height="${LANDMARK_ICON_H}" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 0C6.716 0 0 6.716 0 15c0 11.25 15 25 15 25s15-13.75 15-25C30 6.716 23.284 0 15 0z"
+      fill="#7c3aed" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="15" cy="15" r="5.5" fill="#ffffff"/>
+  </svg>`
+  return window.__L.divIcon({
+    html,
+    className: 'landmark-pin-icon',
+    iconSize: [LANDMARK_ICON_W, LANDMARK_ICON_H],
+    iconAnchor: [LANDMARK_ICON_W / 2, LANDMARK_ICON_H], // 針先が座標点になるようアンカーを最下部に
+    popupAnchor: [0, -LANDMARK_ICON_H]
+  })
+}
+
+// ポップアップ内に番号・入力住所・削除ボタンを表示する（番号はピン自体には
+// 焼き込まず、あくまでポップアップ内だけの表示。表示中の並び順＝landmarks
+// 配列の順序で採番するため、削除すると後続の番号が詰め直される）。
+// buildPopupHtml（停留所側）と同様、ストリートビューは座標にパノラマが
+// 無いと真っ黒になるため、代わりにAPIキー不要の地図埋め込み(output=embed)を使う
+function buildLandmarkPopupHtml(landmark, number) {
+  const lat = landmark.lat
+  const lng = landmark.lng
+  const streetViewHtml = `<div class="landmark-streetview">
+  <iframe
+    src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
+    width="200"
+    height="200"
+    style="border:0;"
+    loading="lazy"
+    allowfullscreen>
+  </iframe>
+</div>`
+  const externalLinksHtml = `
+    <div class="landmark-external-links">
+      <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+    </div>`
+  return `<div class="landmark-popup">
+    <p class="landmark-popup-title">📍 ランドマーク #${number}</p>
+    <p class="landmark-popup-address">${escapeHtml(landmark.address)}</p>
+    ${streetViewHtml}
+    ${externalLinksHtml}
+    <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">このランドマークを削除</button>
+  </div>`
+}
+
+function loadLandmarksFromStorage() {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(LANDMARK_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error('ランドマークの読み込みに失敗したにゃ:', err)
+    return []
+  }
+}
+
+function saveLandmarksToStorage() {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(LANDMARK_STORAGE_KEY, JSON.stringify(landmarks.value))
+  } catch (err) {
+    console.error('ランドマークの保存に失敗したにゃ:', err)
+  }
+}
+
+// landmarks配列の現在の内容から、landmarkLayerを丸ごと描き直す。
+// 追加・削除どちらの後もこれを呼べば表示とポップアップ番号が常に一致する
+function renderLandmarks() {
+  if (!landmarkLayer) return
+  landmarkLayer.clearLayers()
+  const L = window.__L
+  landmarks.value.forEach((lm, idx) => {
+    const marker = L.marker([lm.lat, lm.lng], { icon: createLandmarkIcon() })
+    marker.bindPopup(buildLandmarkPopupHtml(lm, idx + 1), { maxWidth: 320 })
+    marker.addTo(landmarkLayer)
+  })
+}
+
+// 住所入力→ジオコーディング→ランドマーク追加。
+// levelは町丁目レベル(5)を要求。通り名住所など正規化に失敗するケースが
+// あるため、point が取れなかった場合はエラーメッセージを出すだけに留める
+async function addLandmark() {
+  const address = landmarkAddress.value.trim()
+  if (!address) return
+
+  landmarkError.value = ''
+  geocoding.value = true
+  try {
+    const result = await normalize(address, { level: 5 })
+    if (!result || !result.point) {
+      landmarkError.value = '座標を特定できませんでした。住所を見直してください'
+      return
+    }
+
+    const landmark = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      address,
+      lat: result.point.lat,
+      lng: result.point.lng,
+      level: result.point.level,
+      createdAt: Date.now()
+    }
+    landmarks.value.push(landmark)
+    saveLandmarksToStorage()
+    renderLandmarks()
+    landmarkAddress.value = ''
+
+    if (map) map.setView([landmark.lat, landmark.lng], Math.max(map.getZoom(), 16))
+  } catch (err) {
+    console.error('ジオコーディングに失敗したにゃ:', err)
+    landmarkError.value = '住所の変換に失敗しました。しばらくして再度お試しください'
+  } finally {
+    geocoding.value = false
+  }
+}
+
+function removeLandmark(id) {
+  landmarks.value = landmarks.value.filter(lm => lm.id !== id)
+  saveLandmarksToStorage()
+  renderLandmarks()
 }
 
 // ブラウザのGeolocation APIで現在地を取得し、地図上にプロットする。
@@ -521,8 +682,13 @@ onMounted(async () => {
     })
   })
 
-  // ポップアップ内の系統名・運行会社名クリックをイベント委譲で処理
+  // ポップアップ内の系統名・運行会社名・ランドマーク削除ボタンクリックをイベント委譲で処理
   mapEl.value.addEventListener('click', (e) => {
+    const deleteEl = e.target.closest('.landmark-delete-btn')
+    if (deleteEl) {
+      removeLandmark(deleteEl.dataset.id)
+      return
+    }
     const routeEl = e.target.closest('.route-link')
     if (routeEl) {
       onPopupRouteClick(routeEl.dataset.operator, routeEl.dataset.route, routeEl.dataset.stopId)
@@ -552,6 +718,12 @@ onMounted(async () => {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 21
   }).addTo(map)
+
+  // ランドマークレイヤーは停留所データの読み込みを待たずに初期化し、
+  // localStorageに保存済みのランドマークがあればすぐ復元して表示する
+  landmarkLayer = L.layerGroup().addTo(map)
+  landmarks.value = loadLandmarksFromStorage()
+  renderLandmarks()
   
   try {
     // lyrs=m: Standard Roadmap（通常の地図）
@@ -786,6 +958,135 @@ onMounted(async () => {
   padding: 3px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.landmark-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  width: min(260px, calc(100vw - 24px));
+}
+
+.landmark-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.landmark-form {
+  display: flex;
+  gap: 6px;
+}
+
+.landmark-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.landmark-add-btn {
+  border: 1px solid #7c3aed;
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.landmark-add-btn:hover:not(:disabled) {
+  background: #ede9fe;
+}
+
+.landmark-add-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.landmark-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.landmark-count {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #888;
+}
+
+:deep(.landmark-pin-icon) {
+  background: transparent;
+  border: none;
+  overflow: visible;
+}
+
+:deep(.landmark-pin-icon) svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+:deep(.landmark-popup) {
+  line-height: 1.4;
+}
+
+:deep(.landmark-popup-title) {
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+:deep(.landmark-popup-address) {
+  margin: 0 0 8px;
+  color: #444;
+  font-size: 12px;
+}
+
+:deep(.landmark-delete-btn) {
+  border: none;
+  background: #dc2626;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+:deep(.landmark-streetview) {
+  margin-top: 6px;
+}
+
+:deep(.landmark-external-links) {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:deep(.landmark-external-links a) {
+  color: #1d4ed8;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+:deep(.landmark-external-links a:hover) {
+  text-decoration: underline;
+}
+
+:deep(.landmark-delete-btn:hover) {
+  background: #b91c1c;
 }
 
 :deep(.stop-star-icon) {
