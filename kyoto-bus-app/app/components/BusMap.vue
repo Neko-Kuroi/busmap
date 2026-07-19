@@ -48,26 +48,43 @@
       </div>
     </div>
 
-    <div class="landmark-panel">
-      <div class="landmark-header">📍 ランドマークを追加</div>
-      <form class="landmark-form" @submit.prevent="addLandmark">
-        <input
-          class="landmark-input"
-          type="text"
-          v-model="landmarkAddress"
-          placeholder="住所を入力"
-          :disabled="geocoding"
-        />
-        <button
-          class="landmark-add-btn"
-          type="submit"
-          :disabled="geocoding || !landmarkAddress.trim()"
-        >
-          {{ geocoding ? '検索中…' : '追加' }}
-        </button>
-      </form>
-      <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
-      <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} 件登録中</p>
+    <div class="right-stack">
+      <div class="landmark-panel">
+        <div class="landmark-header">📍 ランドマークを追加</div>
+        <form class="landmark-form" @submit.prevent="addLandmark">
+          <input
+            class="landmark-input"
+            type="text"
+            v-model="landmarkAddress"
+            placeholder="住所を入力"
+            :disabled="geocoding"
+          />
+          <button
+            class="landmark-add-btn"
+            type="submit"
+            :disabled="geocoding || !landmarkAddress.trim()"
+          >
+            {{ geocoding ? '検索中…' : '追加' }}
+          </button>
+        </form>
+        <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
+        <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} 件登録中</p>
+      </div>
+
+      <div class="history-panel" v-if="viewHistory.length">
+        <div class="history-header">🕘 最近見た停留所</div>
+        <div class="history-list">
+          <button
+            v-for="h in viewHistory"
+            :key="h.coordKey"
+            class="history-item"
+            @click="goToHistoryEntry(h)"
+          >
+            <span class="history-name">{{ h.name }}</span>
+            <span class="history-other" v-if="h.otherCount">他{{ h.otherCount }}件</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -86,12 +103,14 @@ const geoSupported = ref(false)
 const locating = ref(false)
 const geoError = ref('')
 
-// ランドマーク機能：ユーザーが住所を入力→ジオコーディング→地図に追加。
-// localStorageに保存し、次回訪問時も復元する
 const landmarkAddress = ref('')
 const landmarkError = ref('')
 const geocoding = ref(false)
-const landmarks = ref([]) // [{id, address, lat, lng, level, createdAt}]
+const landmarks = ref([])
+
+// 最近見た停留所の履歴。座標(coordKey)ごとに1件のみ保持し、再訪すると
+// 先頭に繰り上がる（ブラウザの閲覧履歴と同じ挙動）。localStorageに永続化する
+const viewHistory = ref([]) // [{coordKey, name, otherCount, lat, lng, lastViewedAt}]
 
 let allRoutes = []
 let map = null
@@ -105,12 +124,25 @@ let hiddenMarkerIds = []
 let dataBounds = null
 let userMarker = null
 
-const LANDMARK_STORAGE_KEY = 'kyoto-bus-app:landmarks'
+// 座標(coordKey)ごとの重複統合グループ情報。{ stops: [...], baseMarker, starMarker }
+// 黄色ドット・星どちらのグループポップアップもここを参照して同じstops配列を使う
+// （星がハイライト中に黄色ドットを隠しても、星のポップアップから同じ情報にアクセスできる）
+let groupsByCoordKey = {}
 
-// 「系統名・事業者名」に加えて「停留所名・ひらがな読み」でも検索できるようにする。
-// ひらがな読み(kana)は元データに用意されているものだけを対象にし、
-// 自動生成(pykakashiなど)は地名変換の精度が低かったため行わない。
-// 停留所名にヒットした場合は、その停留所を含む系統も検索結果に含める。
+// 座標(coordKey)ごとに「最後に見ていたポップアップのページ番号」を記憶する。
+// マーカーインスタンス自体は星側だと系統選択のたびに作り直されるため、
+// マーカーの外（座標キー）に持たせることで選び直しても記憶が引き継がれる
+let groupPageByCoord = {}
+
+const LANDMARK_STORAGE_KEY = 'kyoto-bus-app:landmarks'
+const HISTORY_STORAGE_KEY = 'kyoto-bus-app:viewHistory'
+const HISTORY_LIMIT = 50
+
+// 停留所の緯度経度から、重複統合・ページ記憶・履歴で共通して使う座標キーを作る
+function coordKeyOf(lat, lng) {
+  return `${lat.toFixed(6)},${lng.toFixed(6)}`
+}
+
 const filteredRoutes = computed(() => {
   const q = query.value.trim()
   if (!q) return []
@@ -118,7 +150,6 @@ const filteredRoutes = computed(() => {
   const seenKeys = new Set()
   const result = []
 
-  // 1) 系統名・事業者名で直接マッチする系統
   for (const r of allRoutes) {
     if (r.route.includes(q) || r.operator.includes(q)) {
       const key = r.operator + '||' + r.route
@@ -129,7 +160,6 @@ const filteredRoutes = computed(() => {
     }
   }
 
-  // 2) 停留所名・ひらがな読みでマッチする停留所を探す
   const matchedStopIds = new Set()
   for (const id in stopsById) {
     const s = stopsById[id]
@@ -138,7 +168,6 @@ const filteredRoutes = computed(() => {
     }
   }
 
-  // 3) その停留所を含む系統を検索結果に追加（どの停留所名でヒットしたか付記する）
   if (matchedStopIds.size) {
     for (const r of allRoutes) {
       const key = r.operator + '||' + r.route
@@ -174,19 +203,15 @@ function selectRoute(r, anchorStopId) {
   renderHighlight(r, anchorStopId)
 }
 
-// ズームレベルに応じたマーカー半径（ズームインしても小さくなりすぎないよう下限を確保しつつ、ズームに応じて拡大）
 function stopRadius(zoom, isHighlight) {
   const base = Math.max(6, Math.min(14, zoom - 6))
   return isHighlight ? base + 3 : base
 }
 
-// 星アイコンの半径（アイコンサイズの半分）。createStarIconとツールチップの
-// オフセット計算の両方で使うので共通化しておく
 function starIconHalf(zoom) {
   return (stopRadius(zoom, true) * 3.2) / 2
 }
 
-// 選択中の系統の停留所用：星形アイコン（サイズはズームに応じて可変）
 function createStarIcon(zoom) {
   const half = starIconHalf(zoom)
   const size = half * 2
@@ -203,8 +228,6 @@ function createStarIcon(zoom) {
   })
 }
 
-// 通常の停留所用：丸いdivIcon（クラスタリング対応のため circleMarker ではなく
-// L.marker + divIcon を使う。サイズはズームに応じて可変）
 function createDotIcon(zoom) {
   const size = stopRadius(zoom, false) * 2
   const half = size / 2
@@ -217,7 +240,6 @@ function createDotIcon(zoom) {
   })
 }
 
-// クラスター（複数停留所をまとめた丸）のアイコン生成
 function createClusterIcon(cluster) {
   const count = cluster.getChildCount()
   const size = count < 10 ? 34 : count < 50 ? 42 : count < 200 ? 50 : 58
@@ -237,7 +259,6 @@ function escapeHtml(str) {
     .replaceAll("'", '&#39;')
 }
 
-// 現在地マーカー用のパルスアイコン（停留所のアイコンと見分けやすいよう青系のドット＋波紋）
 function createUserLocationIcon() {
   return window.__L.divIcon({
     html: `<span class="user-location-dot"><span class="user-location-pulse"></span></span>`,
@@ -247,9 +268,6 @@ function createUserLocationIcon() {
   })
 }
 
-// ランドマーク用：ピン針型の自作SVGアイコン（バス停の丸ドット・星とは
-// 形状も色も明確に区別できるようにする）。サイズは固定（ズームに応じて
-// 可変にしているバス停アイコンとは異なり、常に一定の大きさで目立たせる）
 const LANDMARK_ICON_W = 30
 const LANDMARK_ICON_H = 40
 function createLandmarkIcon() {
@@ -262,16 +280,11 @@ function createLandmarkIcon() {
     html,
     className: 'landmark-pin-icon',
     iconSize: [LANDMARK_ICON_W, LANDMARK_ICON_H],
-    iconAnchor: [LANDMARK_ICON_W / 2, LANDMARK_ICON_H], // 針先が座標点になるようアンカーを最下部に
+    iconAnchor: [LANDMARK_ICON_W / 2, LANDMARK_ICON_H],
     popupAnchor: [0, -LANDMARK_ICON_H]
   })
 }
 
-// ポップアップ内に番号・入力住所・削除ボタンを表示する（番号はピン自体には
-// 焼き込まず、あくまでポップアップ内だけの表示。表示中の並び順＝landmarks
-// 配列の順序で採番するため、削除すると後続の番号が詰め直される）。
-// buildPopupHtml（停留所側）と同様、ストリートビューは座標にパノラマが
-// 無いと真っ黒になるため、代わりにAPIキー不要の地図埋め込み(output=embed)を使う
 function buildLandmarkPopupHtml(landmark, number) {
   const lat = landmark.lat
   const lng = landmark.lng
@@ -318,8 +331,6 @@ function saveLandmarksToStorage() {
   }
 }
 
-// landmarks配列の現在の内容から、landmarkLayerを丸ごと描き直す。
-// 追加・削除どちらの後もこれを呼べば表示とポップアップ番号が常に一致する
 function renderLandmarks() {
   if (!landmarkLayer) return
   landmarkLayer.clearLayers()
@@ -331,9 +342,6 @@ function renderLandmarks() {
   })
 }
 
-// 住所入力→ジオコーディング→ランドマーク追加。
-// levelは町丁目レベル(5)を要求。通り名住所など正規化に失敗するケースが
-// あるため、point が取れなかった場合はエラーメッセージを出すだけに留める
 async function addLandmark() {
   const address = landmarkAddress.value.trim()
   if (!address) return
@@ -375,11 +383,81 @@ function removeLandmark(id) {
   renderLandmarks()
 }
 
-// ブラウザのGeolocation APIで現在地を取得し、地図上にプロットする。
-// ユーザーが「現在地を表示」ボタンを押した時だけ呼ばれる（無断で位置情報を
-// 取得しない）。このアプリは京都エリアのバス停を探すためのものなので、
-// 取得した現在地が実際の停留所データの分布範囲（dataBounds）の外にある
-// 場合はプロットしない＝京都にいないユーザーには現在地マーカーを出さない。
+function loadHistoryFromStorage() {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error('履歴の読み込みに失敗したにゃ:', err)
+    return []
+  }
+}
+
+function saveHistoryToStorage() {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(viewHistory.value))
+  } catch (err) {
+    console.error('履歴の保存に失敗したにゃ:', err)
+  }
+}
+
+// 停留所（黄色ドット・星どちらでも）のポップアップが開いた瞬間に呼ばれる。
+// 同じcoordKeyが既に履歴にあれば新規追加せず、日時だけ更新して先頭に繰り上げる
+// （ブラウザの閲覧履歴と同じ挙動）。直近HISTORY_LIMIT件を超えたら古い順に削除する
+function recordHistory(coordKey) {
+  const entry = groupsByCoordKey[coordKey]
+  if (!entry) return
+  const first = entry.stops[0]
+  const otherCount = entry.stops.length - 1
+
+  const existingIndex = viewHistory.value.findIndex(h => h.coordKey === coordKey)
+  if (existingIndex !== -1) viewHistory.value.splice(existingIndex, 1)
+
+  viewHistory.value.unshift({
+    coordKey,
+    name: first.name,
+    otherCount,
+    lat: first.lat,
+    lng: first.lng,
+    lastViewedAt: Date.now()
+  })
+
+  if (viewHistory.value.length > HISTORY_LIMIT) {
+    viewHistory.value.length = HISTORY_LIMIT
+  }
+
+  saveHistoryToStorage()
+}
+
+// 履歴パネルの項目クリック→その座標へ地図をジャンプし、黄色ドット側のポップアップを開く。
+// 系統ハイライト中でその座標が非表示（opacity 0）になっている場合は、
+// ポップアップ自体は開けるがドットが見えない状態になりうる（既知の制約）
+function goToHistoryEntry(h) {
+  if (!map) return
+  map.setView([h.lat, h.lng], Math.max(map.getZoom(), 16))
+  const entry = groupsByCoordKey[h.coordKey]
+  if (entry && entry.baseMarker) {
+    entry.baseMarker.openPopup()
+  }
+}
+
+// ポップアップ内のページ送りリンククリック→該当座標の記憶ページを更新し、
+// 今開いているポップアップ（黄色ドット・星どちらか開いている方）の中身だけ差し替える
+function goToStopPage(coordKey, page) {
+  const entry = groupsByCoordKey[coordKey]
+  if (!entry) return
+  groupPageByCoord[coordKey] = page
+  const html = buildGroupedPopupHtml(coordKey, page)
+  if (entry.baseMarker && entry.baseMarker.isPopupOpen()) {
+    entry.baseMarker.setPopupContent(html)
+  }
+  if (entry.starMarker && entry.starMarker.isPopupOpen()) {
+    entry.starMarker.setPopupContent(html)
+  }
+}
+
 function locateUser() {
   geoError.value = ''
 
@@ -412,7 +490,6 @@ function locateUser() {
     },
     (error) => {
       locating.value = false
-      // PERMISSION_DENIED=1, POSITION_UNAVAILABLE=2, TIMEOUT=3
       if (error.code === 1) {
         geoError.value = '位置情報の利用が許可されませんでした'
       } else if (error.code === 2) {
@@ -428,8 +505,6 @@ function locateUser() {
   )
 }
 
-// ホバーでポップアップを開閉しつつ、カーソルがポップアップ内(系統名リンクなど)に
-// 移動した場合は閉じないようにするための遅延クローズ管理
 let closeTimer = null
 
 function cancelClose() {
@@ -442,7 +517,6 @@ function scheduleClose(marker) {
   closeTimer = setTimeout(() => {
     const popup = marker.getPopup && marker.getPopup()
     const el = popup && popup.isOpen() && popup.getElement()
-    // マウスが実際にポップアップの上にある場合は閉じない（保険）
     if (el && el.matches(':hover')) return
     marker.closePopup()
   }, 250)
@@ -458,8 +532,6 @@ function bindHoverPopup(marker) {
   })
 }
 
-// ポップアップ内の系統名クリック → 検索欄にセットし、その系統を選択状態にする
-// anchorStopId: クリック元のポップアップがどの停留所のものだったか（表示位置を保つため）
 function onPopupRouteClick(operator, route, anchorStopId) {
   const match = allRoutes.find(r => r.operator === operator && r.route === route)
   if (!match) return
@@ -467,12 +539,10 @@ function onPopupRouteClick(operator, route, anchorStopId) {
   selectRoute(match, anchorStopId)
 }
 
-// ポップアップ内の運行会社名クリック → 検索欄にセットするのみ（選択状態は変更しない）
 function onPopupOperatorClick(operator) {
   query.value = operator
 }
 
-// 停留所ポップアップ内の「運行会社名＋系統名」部分（クリック可能）を生成
 function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
@@ -482,29 +552,17 @@ function buildStopSubLabel(stop) {
   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
 }
 
-// 系統選択時、アンカー以外の星マーカーに常時表示する「小さいラベル」
-// (停留所名＋ひらがな読み[あれば])。Tooltip(permanent)を使うことで、
-// 既存のPopup(ホバー時のフル情報表示・アンカーの開きっぱなしポップアップ)の
-// autoClose挙動に一切影響を与えずに独立して表示できる。
-function buildMiniStopLabel(stop) {
+// groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
+// （同一座標に複数stopがある場合、ツールチップに全件詰め込まず代表1件＋件数のみ表示する）
+function buildMiniStopLabel(stop, groupSize) {
   const kanaHtml = stop.kana ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
-  return `<span class="stop-mini-name">${escapeHtml(stop.name)}</span>${kanaHtml}`
+  const otherHtml = groupSize && groupSize > 1
+    ? `<br><span class="stop-mini-other">他${groupSize - 1}件</span>`
+    : ''
+  return `<span class="stop-mini-name">${escapeHtml(stop.name)}</span>${kanaHtml}${otherHtml}`
 }
 
-function buildPopupHtml(stop, subLabel) {
-  const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
-  const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
-  const linkHtml = stop.url
-    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
-    : ''
-
-  const lat = stop.lat
-  const lng = stop.lng
-
-  // ストリートビューは停留所の座標にパノラマが無いと真っ黒になってしまうため、
-  // 代わりに座標さえあれば確実にその地点へピンが立つ「地図埋め込み」形式を使う。
-  // https://maps.google.com/maps?q=LAT,LNG&z=ZOOM&output=embed はAPIキー不要で
-  // 座標をそのまま渡せる、Googleの昔からある素の埋め込み形式。
+function buildLocationExtrasHtml(lat, lng) {
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
@@ -516,7 +574,6 @@ function buildPopupHtml(stop, subLabel) {
   </iframe>
 </div>`
 
-
   const externalLinksHtml = `
     <div class="stop-external-links">
       <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16" target="_blank" rel="noopener">📍 Google Maps</a>
@@ -526,17 +583,77 @@ function buildPopupHtml(stop, subLabel) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
 
+  return streetViewHtml + externalLinksHtml
+}
+
+function buildPopupHtml(stop, subLabel) {
+  const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
+  const linkHtml = stop.url
+    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
+    : ''
+
+  const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
+
   return `<div class="stop-popup">
     <p class="stop-name">${escapeHtml(stop.name)}</p>
     ${kanaHtml}
     ${subLabelHtml}
-    ${streetViewHtml}
+    ${extrasHtml}
     ${linkHtml}
-    ${externalLinksHtml}
   </div>`
 }
 
-// 通常表示時／薄く表示する時のマーカー不透明度
+// 同一座標(小数点6桁まで完全一致)に複数のstopレコードが存在する場合の
+// ポップアップ。1件を超える場合は「1ページ1レコード」のページング表示に
+// する（全件を縦に並べると長くなりすぎるため）。ページ番号はgroupPageByCoord
+// に座標キーで記憶されており、ポップアップを開き直しても・系統を選び直しても
+// 保持される。地図埋め込み・外部リンクは座標共通なので、どのページでも
+// 末尾に1回だけ表示する。coordKeyはgroupsByCoordKeyを引くためのキーで、
+// 黄色ドット・星どちらのグループポップアップからも共通で参照する
+function buildGroupedPopupHtml(coordKey, pageIndex) {
+  const entry = groupsByCoordKey[coordKey]
+  if (!entry) return ''
+  const stopGroup = entry.stops
+
+  if (stopGroup.length === 1) {
+    return buildPopupHtml(stopGroup[0], buildStopSubLabel(stopGroup[0]))
+  }
+
+  const total = stopGroup.length
+  const page = Math.min(Math.max(pageIndex || 0, 0), total - 1)
+  const stop = stopGroup[page]
+
+  const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const subLabelHtml = `<p class="stop-sub">${buildStopSubLabel(stop)}</p>`
+  const linkHtml = stop.url
+    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
+    : ''
+
+  const pagerLinksHtml = stopGroup
+    .map((_, i) => {
+      const activeClass = i === page ? ' active' : ''
+      return `<span class="stop-page-link${activeClass}" data-coord-key="${escapeHtml(coordKey)}" data-page="${i}">${i + 1}</span>`
+    })
+    .join('')
+
+  const pagerHtml = `<div class="stop-pager">
+    <span class="stop-pager-label">${page + 1} / ${total}件（事業者・系統違い）</span>
+    <div class="stop-pager-links">${pagerLinksHtml}</div>
+  </div>`
+
+  const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
+
+  return `<div class="stop-popup">
+    ${pagerHtml}
+    <p class="stop-name">${escapeHtml(stop.name)}</p>
+    ${kanaHtml}
+    ${subLabelHtml}
+    ${linkHtml}
+    ${extrasHtml}
+  </div>`
+}
+
 const BASE_OPACITY = 0.45
 const DIMMED_OPACITY = 0.3
 
@@ -545,7 +662,6 @@ function renderHighlight(route, anchorStopId) {
   highlightMarkersById = {}
   highlightLayer.clearLayers()
 
-  // 前回、星の下に隠すため非表示にしていた丸を元に戻す
   for (const id of hiddenMarkerIds) {
     const m = markersById[id]
     if (m) m.setOpacity(BASE_OPACITY)
@@ -557,7 +673,6 @@ function renderHighlight(route, anchorStopId) {
     return
   }
 
-  // 選択中の系統以外の停留所を薄くする
   baseLayer.eachLayer(l => l.setOpacity(DIMMED_OPACITY))
 
   const L = window.__L
@@ -565,39 +680,64 @@ function renderHighlight(route, anchorStopId) {
   const half = starIconHalf(zoom)
   const bounds = []
   let anchorMarker = null
+
+  // 黄色ドット側と同じ理由（同一座標に複数stopレコードが乗るケースがある）で、
+  // 星も座標キーで重複統合する。今のデータで同一系統に同座標の重複が
+  // 含まれるかは未確認だが、他エリア拡張時に必ず起こりうる前提で対応する
+  const seenCoordKeys = new Set()
+
   for (const id of route.stopIds) {
     const stop = stopsById[id]
     if (!stop) continue
     bounds.push([stop.lat, stop.lng])
 
-    // 星アイコンの下に丸が二重に残らないよう、完全に非表示にする
+    const coordKey = coordKeyOf(stop.lat, stop.lng)
+
+    // 黄色ドットの非表示化はstop.id単位のまま。groupsByCoordKeyのおかげで
+    // 同じ座標のどのidを渡してもmarkersById[id]は同じ1個のマーカーを指すので、
+    // 二重に隠す・二重に戻す心配はない
     const baseMarker = markersById[id]
     if (baseMarker) {
       baseMarker.setOpacity(0)
       hiddenMarkerIds.push(id)
     }
 
-    const marker = L.marker([stop.lat, stop.lng], {
-      icon: createStarIcon(zoom)
-    })
-    marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
-    bindHoverPopup(marker)
+    let marker
+    if (seenCoordKeys.has(coordKey)) {
+      // この座標の星は既にこのループ内で作成済み。既存のマーカーを再利用する
+      marker = groupsByCoordKey[coordKey] && groupsByCoordKey[coordKey].starMarker
+    } else {
+      seenCoordKeys.add(coordKey)
+      const entry = groupsByCoordKey[coordKey]
 
-    // どの停留所かを識別できるようマーカーに直接タグ付けしておく
-    // （map全体のpopupopen/popupcloseイベントから、この星かどうかを判定するため）
+      marker = L.marker([stop.lat, stop.lng], {
+        icon: createStarIcon(zoom)
+      })
+      const initialPage = groupPageByCoord[coordKey] || 0
+      marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 320 })
+      bindHoverPopup(marker)
+
+      marker._coordKey = coordKey
+
+      const groupStops = entry ? entry.stops : [stop]
+      marker.bindTooltip(buildMiniStopLabel(groupStops[0], groupStops.length), {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -half],
+        className: 'stop-mini-tooltip'
+      })
+
+      marker.addTo(highlightLayer)
+      if (entry) entry.starMarker = marker
+    }
+
+    if (!marker) continue
+
+    // このidが指す星マーカーが何であれ、popupopen/popupcloseハンドラが
+    // 「これは星である」と判定するためのフラグとして使う（表示上は最後に
+    // マッチしたidで上書きされるが、ツールチップ再構築はcoordKey経由で
+    // groupsByCoordKeyを見るためstopsById[marker._highlightStopId]には依存しない）
     marker._highlightStopId = id
-
-    // まず全員に停留所名＋ひらがな読みの小さいラベルを付けておく。
-    // ポップアップが開いている星だけは、popupopenイベント側で自動的に
-    // このツールチップを外す（下のonMountedの map.on('popupopen', ...) 参照）
-    marker.bindTooltip(buildMiniStopLabel(stop), {
-      permanent: true,
-      direction: 'top',
-      offset: [0, -half],
-      className: 'stop-mini-tooltip'
-    })
-
-    marker.addTo(highlightLayer)
     highlightMarkersById[id] = marker
 
     if (anchorStopId != null && String(id) === String(anchorStopId)) {
@@ -606,31 +746,20 @@ function renderHighlight(route, anchorStopId) {
   }
 
   if (anchorMarker) {
-    // ポップアップ内の系統名クリックから来た場合：どの停留所を見ていたか
-    // 見失わないよう、地図の中心・ズームは動かさず、同じ場所の星マーカーの
-    // ポップアップを開き直す（開いた瞬間、popupopenハンドラがこの星の
-    // ツールチップを自動的に外す）
     anchorMarker.openPopup()
   } else if (bounds.length) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
   }
 }
 
+
 onMounted(async () => {
-  // Geolocation APIはHTTPS(またはlocalhost)などのセキュアコンテキストでないと
-  // 使えない。navigator.geolocation自体が無いブラウザもあるため、両方チェックして
-  // ボタンを出すかどうかを決める（使えない環境ではボタンごと出さず、無言で
-  // 失敗させない）
   geoSupported.value = typeof navigator !== 'undefined'
     && !!navigator.geolocation
     && (typeof window === 'undefined' || window.isSecureContext !== false)
 
   const L = await import('leaflet')
   window.__L = L
-  // leaflet.markercluster は古いUMD形式で `import` ではなくグローバル変数
-  // window.L を直接参照する作りになっている（L.MarkerClusterGroup = ... など）。
-  // これを設定せずに読み込むと "L is not defined" で例外が発生し、
-  // このあとのマーカー描画処理まで到達できなくなる。
   window.L = L
   let clusteringAvailable = true
   try {
@@ -641,13 +770,10 @@ onMounted(async () => {
   }
 
   map = L.map(mapEl.value, {
-    center: [35.011, 135.768], // 京都御所付近
+    center: [35.011, 135.768],
     zoom: 14
   })
 
-  // ポップアップが開いたら、その要素自体にカーソルが乗っている間は
-  // クローズタイマーを止め、離れたら閉じる（マーカー→ポップアップへの
-  // カーソル移動中に mouseout で即座に閉じてしまう問題への対処）
   map.on('popupopen', (e) => {
     const el = e.popup.getElement()
     const marker = e.popup._source
@@ -655,26 +781,27 @@ onMounted(async () => {
     el.addEventListener('mouseenter', cancelClose)
     el.addEventListener('mouseleave', () => scheduleClose(marker))
 
-    // 星マーカー（ハイライト中の系統の停留所）のポップアップが開いたら、
-    // その星だけ小さいラベル(ツールチップ)を一時的に外す。
-    // 「ポップアップが表示されているもの以外にツールチップが表示される」
-    // というルールを、系統選択直後だけでなく別の星に切り替えた時にも保つため。
     if (marker._highlightStopId != null && marker.getTooltip()) {
       marker.unbindTooltip()
     }
+
+    // 黄色ドット・星どちらのポップアップが開いても、その座標を履歴に記録する
+    // （ランドマーク・現在地マーカーには_coordKeyが無いので対象外）
+    if (marker._coordKey != null) {
+      recordHistory(marker._coordKey)
+    }
   })
 
-  // 星マーカーのポップアップが閉じたら（＝別の星に移った、または解除された）、
-  // まだ同じ系統内の星として現役なら、小さいラベルを付け直す
   map.on('popupclose', (e) => {
     const marker = e.popup._source
     if (!marker || marker._highlightStopId == null) return
     const id = marker._highlightStopId
     if (highlightMarkersById[id] !== marker) return
     if (marker.getTooltip()) return
-    const stop = stopsById[id]
+    const entry = marker._coordKey != null ? groupsByCoordKey[marker._coordKey] : null
+    const stop = entry ? entry.stops[0] : stopsById[id]
     if (!stop) return
-    marker.bindTooltip(buildMiniStopLabel(stop), {
+    marker.bindTooltip(buildMiniStopLabel(stop, entry ? entry.stops.length : 1), {
       permanent: true,
       direction: 'top',
       offset: [0, -starIconHalf(map.getZoom())],
@@ -682,11 +809,15 @@ onMounted(async () => {
     })
   })
 
-  // ポップアップ内の系統名・運行会社名・ランドマーク削除ボタンクリックをイベント委譲で処理
   mapEl.value.addEventListener('click', (e) => {
     const deleteEl = e.target.closest('.landmark-delete-btn')
     if (deleteEl) {
       removeLandmark(deleteEl.dataset.id)
+      return
+    }
+    const pageEl = e.target.closest('.stop-page-link')
+    if (pageEl) {
+      goToStopPage(pageEl.dataset.coordKey, Number(pageEl.dataset.page))
       return
     }
     const routeEl = e.target.closest('.route-link')
@@ -700,38 +831,24 @@ onMounted(async () => {
     }
   })
 
-  // ズーム変化に応じてマーカーサイズを再計算（ズームインしても小さくなりすぎないように）
   map.on('zoomend', () => {
     const z = map.getZoom()
     if (baseLayer) baseLayer.eachLayer(l => l.setIcon(createDotIcon(z)))
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
-  
-  //L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
-  //  attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
-  //  maxZoom: 21
-  //}).addTo(map);
-
-  
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 21
   }).addTo(map)
 
-  // ランドマークレイヤーは停留所データの読み込みを待たずに初期化し、
-  // localStorageに保存済みのランドマークがあればすぐ復元して表示する
   landmarkLayer = L.layerGroup().addTo(map)
   landmarks.value = loadLandmarksFromStorage()
   renderLandmarks()
-  
+
+  viewHistory.value = loadHistoryFromStorage()
+
   try {
-    // lyrs=m: Standard Roadmap（通常の地図）
-    // lyrs=s: Satellite only（航空写真のみ、文字なし）
-    // lyrs=y: Hybrid（航空写真 ＋ 道路 ＋ 日本語ラベル）
-    // lyrs=p: Terrain（地形図）
-    // hl=ja: 言語を日本語に固定
-    
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 21,
@@ -740,16 +857,6 @@ onMounted(async () => {
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
-
-  // 事業者単位のバスルート線　道路 // 事業者単位のバスルート線
-  //fetch('/data/route_lines.geojson')
-  //  .then(res => res.json())
-  //  .then(routeLines => {
-  //    L.geoJSON(routeLines, {
-  //      interactive: false,
-  //      style: { color: '#94a3b8', weight: 1.5, opacity: 0.5 }
-  //    }).addTo(map)
-  //  })
 
   const [stopsRes, routesRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
@@ -764,21 +871,13 @@ onMounted(async () => {
 
   for (const s of stops) stopsById[s.id] = s
 
-  // 実際の停留所データの分布範囲を「京都エリア」とみなす（都道府県境で
-  // 厳密に区切るのではなく、このアプリが対象とするバス停の分布範囲そのものを使う）
   dataBounds = L.latLngBounds(stops.map(s => [s.lat, s.lng]))
 
-  // 画面からはみ出た／密集している停留所は自動でクラスタリングしてアイコン数を
-  // 減らし、描画・操作の負荷を下げる（chunkedLoading で4685件の初期追加も分割処理）
-  // ※ プラグインが読み込めなかった場合は通常のlayerGroupにフォールバックする
   baseLayer = (clusteringAvailable && typeof L.markerClusterGroup === 'function')
     ? L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 60,
         disableClusteringAtZoom: 15,
-        // クラスタを放射状に展開(スパイダーファイ)すると停留所が実際とは
-        // 違う位置に配置され、つなぎの線も表示されて紛らわしいため無効化。
-        // クリック時は zoomToBoundsOnClick（デフォルト有効）でズームインするのみにする
         spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
         iconCreateFunction: createClusterIcon
@@ -786,16 +885,36 @@ onMounted(async () => {
     : L.layerGroup()
   highlightLayer = L.layerGroup().addTo(map)
 
+  const stopGroupsByCoord = new Map()
   for (const stop of stops) {
-    const marker = L.marker([stop.lat, stop.lng], {
+    const coordKey = coordKeyOf(stop.lat, stop.lng)
+    if (!stopGroupsByCoord.has(coordKey)) stopGroupsByCoord.set(coordKey, [])
+    stopGroupsByCoord.get(coordKey).push(stop)
+  }
+
+  // groupsByCoordKeyを先に全件分作っておく（黄色ドットのマーカー作成ループの中で
+  // buildGroupedPopupHtml(coordKey, ...)が参照するため、先に埋めておく必要がある）
+  for (const [coordKey, group] of stopGroupsByCoord) {
+    groupsByCoordKey[coordKey] = { stops: group, baseMarker: null, starMarker: null }
+  }
+
+  for (const [coordKey, group] of stopGroupsByCoord) {
+    const first = group[0]
+    const marker = L.marker([first.lat, first.lng], {
       icon: createDotIcon(map.getZoom())
     })
 
-    marker.bindPopup(buildPopupHtml(stop, buildStopSubLabel(stop)), { maxWidth: 320 })
+    const initialPage = groupPageByCoord[coordKey] || 0
+    marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 320 })
     bindHoverPopup(marker)
 
+    marker._coordKey = coordKey
     marker.addTo(baseLayer)
-    markersById[stop.id] = marker
+    groupsByCoordKey[coordKey].baseMarker = marker
+
+    for (const stop of group) {
+      markersById[stop.id] = marker
+    }
   }
 
   baseLayer.addTo(map)
@@ -960,17 +1079,23 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.landmark-panel {
+.right-stack {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(260px, calc(100vw - 24px));
+}
+
+.landmark-panel {
   background: rgba(255, 255, 255, 0.96);
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-  width: min(260px, calc(100vw - 24px));
 }
 
 .landmark-header {
@@ -1024,6 +1149,54 @@ onMounted(async () => {
   margin: 6px 0 0;
   font-size: 11px;
   color: #888;
+}
+
+.history-panel {
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.history-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-item {
+  text-align: left;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.history-item:hover {
+  background: #e0e7ff;
+}
+
+.history-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.history-other {
+  font-size: 10px;
+  color: #666;
 }
 
 :deep(.landmark-pin-icon) {
@@ -1101,7 +1274,6 @@ onMounted(async () => {
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
 }
 
-/* 選択中の系統の星マーカーをゆっくり光らせるアニメーション */
 :deep(.star-glow-path) {
   transform-origin: center;
   animation: star-glow 4s ease-in-out infinite;
@@ -1148,7 +1320,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.35);
   border: 1px solid rgba(250, 250, 200, 0.45);
-  
+
   text-align: center;
   font-weight: 700;
   font-size: 12px;
@@ -1200,8 +1372,8 @@ onMounted(async () => {
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
-  background: #fff;      /* ← 追加: 薄いピンクの背景 */
-  border-color: #fff;    /* ← 追加: 枠線も薄ピンクに揃える(任意) */
+  background: #fff;
+  border-color: #fff;
 }
 
 :deep(.stop-mini-name) {
@@ -1214,8 +1386,54 @@ onMounted(async () => {
   font-size: 10px;
 }
 
+:deep(.stop-mini-other) {
+  color: #0d9488;
+  font-size: 10px;
+}
+
 :deep(.stop-popup) {
   line-height: 1.4;
+}
+
+:deep(.stop-pager) {
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+:deep(.stop-pager-label) {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 3px;
+}
+
+:deep(.stop-pager-links) {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+:deep(.stop-page-link) {
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  color: #444;
+}
+
+:deep(.stop-page-link:hover) {
+  background: #f3f4f6;
+}
+
+:deep(.stop-page-link.active) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
 }
 
 :deep(.stop-name) {
