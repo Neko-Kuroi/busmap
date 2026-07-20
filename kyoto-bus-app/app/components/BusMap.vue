@@ -631,9 +631,10 @@ function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-        .join('') // 改行タグはCSSのdisplay:blockで制御するため不要
+        .join('') 
     : '（系統情報なし）';
   
+  // class="stop-routes-inline" を div に確実に付与します
   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span>` +
          `<div class="stop-routes-inline">${routesHtml}</div>`;
 }
@@ -1671,27 +1672,24 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-/* 系統リストエリア：既存のクラスを流用してスタイルを上書き */
-:deep(.stop-routes-inline) {
-  display: block;        /* ブロック化して縦並びに */
-  max-height: 10em;      /* 約7行分 */
-  overflow-y: auto;      /* スクロール有効化 */
-  margin: 4px 0;
-  padding: 4px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fdfdfd;
+/* 既存の :deep(...) 部分を以下に書き換えてください */
+.stop-routes-inline {
+  display: block !important;        /* 確実にブロック化 */
+  max-height: 10em !important;      /* 7行分で制限 */
+  overflow-y: auto !important;      /* スクロール有効化 */
+  margin: 4px 0 !important;
+  padding: 4px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  background: #fdfdfd !important;
 }
 
-/* 系統リンクのスタイルを調整 */
-:deep(.route-link) {
-  display: block;        /* 1行1リンク */
-  padding: 2px 0;
-  color: #1d4ed8;
-  text-decoration: underline dotted;
-}
-:deep(.route-link:hover) {
-  color: #dc2626;
+/* リンクも縦並びに */
+.route-link {
+  display: block !important;
+  padding: 2px 0 !important;
+  color: #1d4ed8 !important;
+  text-decoration: underline dotted !important;
 }
 
 /* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
