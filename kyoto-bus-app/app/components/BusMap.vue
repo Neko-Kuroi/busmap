@@ -624,7 +624,10 @@ function buildStopSubLabel(stop) {
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
         .join('<br>')
     : '（系統情報なし）'
-  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
+  // 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
+  // 系統一覧だけを独立したブロック(stop-routes-scroll)にして、5行を超えたら
+  // その部分だけ縦スクロールにする（停留所名・かな等は伸びず固定のまま）
+  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><div class="stop-routes-inline stop-routes-scroll">${routesHtml}</div>`
 }
 
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
@@ -664,7 +667,7 @@ function buildLocationExtrasHtml(lat, lng) {
 
 function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
-  const subLabelHtml = subLabel ? `<p class="stop-sub">${subLabel}</p>` : ''
+  const subLabelHtml = subLabel ? `<div class="stop-sub">${subLabel}</div>` : ''
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
     : ''
@@ -701,7 +704,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   const stop = stopGroup[page]
 
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
-  const subLabelHtml = `<p class="stop-sub">${buildStopSubLabel(stop)}</p>`
+  const subLabelHtml = `<div class="stop-sub">${buildStopSubLabel(stop)}</div>`
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
     : ''
@@ -835,7 +838,20 @@ onMounted(async () => {
     && !!navigator.geolocation
     && (typeof window === 'undefined' || window.isSecureContext !== false)
 
-  const L = await import('leaflet')
+  // `await import('leaflet')` が返すのはESモジュールのnamespaceオブジェクトで、
+  // 仕様上フリーズされていて後からプロパティを追加できない(non-extensible)。
+  // leaflet.markercluster は古いプラグインで、グローバルのLに対して
+  // L.MarkerClusterGroup = ... のように直接プロパティを生やす作りなので、
+  // window.L にこのfrozenなnamespaceをそのまま入れると「Cannot add property
+  // MarkerClusterGroup, object is not extensible」で例外になり、下のtry/catchに
+  // 静かに握りつぶされてクラスタリングが常に無効化されていた
+  // （コンソールにエラーは出るが、黄色ドットが個別表示されるだけで一見動いて
+  // 見えるため、何十回コミットしても気づきにくいタイプの不具合だった）。
+  // ミュータブルなプレーンオブジェクトにコピーし、window.Lとローカルの
+  // Lを同じオブジェクト参照にすることで、プラグインが追加したプロパティが
+  // 両方から見えるようにする
+  const LeafletModule = await import('leaflet')
+  const L = Object.assign({}, LeafletModule)
   window.__L = L
   window.L = L
   let clusteringAvailable = true
@@ -1147,7 +1163,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 45vh;
+  /* 画面の高さに応じて伸びる45vhではなく、約5件ぶんの高さに固定して
+     それ以降はスクロールで見る（下へ下へ伸び続けないようにする） */
+  max-height: 260px;
   overflow-y: auto;
 }
 
@@ -1626,6 +1644,15 @@ onMounted(async () => {
 
 :deep(.stop-routes-inline) {
   color: #666;
+}
+
+/* 系統が多い停留所でポップアップが縦にどんどん伸びないよう、系統一覧だけを
+   5行ぶんの高さ(line-height 1.5em × 5)に収めてそこだけ縦スクロールにする */
+:deep(.stop-routes-scroll) {
+  max-height: 7.5em;
+  line-height: 1.5em;
+  overflow-y: auto;
+  margin-top: 2px;
 }
 
 :deep(.route-link),
