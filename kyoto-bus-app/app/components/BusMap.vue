@@ -631,12 +631,11 @@ function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-        .join('<br>') // 改行
+        .join('') // 改行タグはCSSのdisplay:blockで制御するため不要
     : '（系統情報なし）';
   
-  // クラス名 route-scroll-area を付与した div で囲みます
   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span>` +
-         `<div class="route-scroll-area">${routesHtml}</div>`;
+         `<div class="stop-routes-inline">${routesHtml}</div>`;
 }
 
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
@@ -1672,26 +1671,27 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-/* 系統リストエリア：高さ制限とスクロール設定 */
-.route-scroll-area {
-  max-height: 10em;      /* 約7行分で制限 */
-  overflow-y: auto;      /* 溢れたらスクロールバーを表示 */
-  margin-top: 5px;
-  padding: 5px;
-  border: 1px solid #ccc;
+/* 系統リストエリア：既存のクラスを流用してスタイルを上書き */
+:deep(.stop-routes-inline) {
+  display: block;        /* ブロック化して縦並びに */
+  max-height: 10em;      /* 約7行分 */
+  overflow-y: auto;      /* スクロール有効化 */
+  margin: 4px 0;
+  padding: 4px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  background-color: #fff;
-  /* flexを外して通常のブロックレイアウトにします */
-  display: block; 
+  background: #fdfdfd;
 }
 
-/* 系統リンク自体の余白調整 */
-.route-link {
-  display: block;        /* 改行を維持するために block にします */
+/* 系統リンクのスタイルを調整 */
+:deep(.route-link) {
+  display: block;        /* 1行1リンク */
   padding: 2px 0;
-  text-decoration: none;
-  color: #2563eb;
-  cursor: pointer;
+  color: #1d4ed8;
+  text-decoration: underline dotted;
+}
+:deep(.route-link:hover) {
+  color: #dc2626;
 }
 
 /* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
