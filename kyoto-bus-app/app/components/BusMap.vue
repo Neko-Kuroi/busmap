@@ -946,7 +946,7 @@ onMounted(async () => {
   try {
     L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
       attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
-      maxZoom: 21
+      maxZoom: 21,
       opacity: 0.7
     }).addTo(map);
   } catch (e) {
