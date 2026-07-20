@@ -618,13 +618,26 @@ function onPopupOperatorClick(operator) {
   query.value = operator
 }
 
+// function buildStopSubLabel(stop) {
+//   const routesHtml = stop.routes.length
+//     ? stop.routes
+//         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
+//         .join('<br>')
+//     : '（系統情報なし）'
+//   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
+// }
+
 function buildStopSubLabel(stop) {
+  // 系統リストを生成
   const routesHtml = stop.routes.length
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-        .join('<br>')
-    : '（系統情報なし）'
-  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
+        .join('') // 改行タグを削除し、CSSで制御する
+    : '（系統情報なし）';
+  
+  // 構造を div.route-scroll-area で囲み、スクロール可能なエリアを作る
+  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span>` +
+         `<div class="route-scroll-area">${routesHtml}</div>`;
 }
 
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
@@ -1658,6 +1671,27 @@ onMounted(async () => {
 
 :deep(.stop-external-links a:hover) {
   text-decoration: underline;
+}
+
+/* 系統リストエリア：高さ制限とスクロール設定 */
+.route-scroll-area {
+  max-height: 10em;      /* 1行約1.4emとして約7行分 */
+  overflow-y: auto;      /* 溢れたらスクロール */
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fafafa;
+  /* 系統リンクを縦並びにするための設定 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ポップアップ全体が長くなりすぎるのを防ぐための補強 */
+.stop-popup {
+  max-height: 70vh;      /* 画面の高さに応じて全体を制限 */
+  display: flex;
+  flex-direction: column;
 }
 
 /* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
