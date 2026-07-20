@@ -730,7 +730,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.55
+const BASE_OPACITY = 0.75
 const DIMMED_OPACITY = 0.65
 
 function renderHighlight(route, anchorStopId) {
@@ -932,16 +932,22 @@ onMounted(async () => {
   //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
   //   maxZoom: 21
   // }).addTo(map)
-
-  L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
-    attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
-    maxZoom: 21
-  }).addTo(map);
+  
   try {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 21,
-      opacity: 0.3
+      opacity: 1.0
+    }).addTo(map);
+  } catch (e) {
+    console.error('❌ Error adding tile layer:', e);
+  }
+  
+  try {
+    L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+      attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+      maxZoom: 21
+      opacity: 0.7
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
