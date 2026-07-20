@@ -731,7 +731,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
 }
 
 const BASE_OPACITY = 0.55
-const DIMMED_OPACITY = 0.55
+const DIMMED_OPACITY = 0.65
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
@@ -941,7 +941,7 @@ onMounted(async () => {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 21,
-      opacity: 0.4
+      opacity: 0.3
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
