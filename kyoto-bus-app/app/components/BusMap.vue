@@ -1501,9 +1501,8 @@ onMounted(async () => {
 :deep(.stop-cluster-dot) {
   display: block;
   border-radius: 50%;
-  background: rgba(234, 255, 0, 0.15);
-  border: 1px solid rgba(250, 230, 200, 0.35);
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  background: rgba(234, 255, 0, 0.19);
+  border: 1px solid rgba(250, 230, 200, 0.55);
   
   text-align: center;
   font-weight: 700;
