@@ -848,7 +848,7 @@ onMounted(async () => {
 
   map = L.map(mapEl.value, {
     center: [35.011, 135.768],
-    zoom: 14,
+    zoom: 15,
     // デフォルトのズームボタン(左上)は検索パネルの下に隠れて押せなくなるため
     // 無効化し、右下(bottomright)に付け直す。一時的に右側中央付近まで
     // CSSで引き上げていたが、同じコーナーの帰属表示(Leaflet/OSM/Google)まで
@@ -928,17 +928,15 @@ onMounted(async () => {
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+  // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+  //   maxZoom: 21
+  // }).addTo(map)
+
+  L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+    attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
     maxZoom: 21
-  }).addTo(map)
-
-  landmarkLayer = L.layerGroup().addTo(map)
-  landmarks.value = loadLandmarksFromStorage()
-  renderLandmarks()
-
-  viewHistory.value = loadHistoryFromStorage()
-
+  }).addTo(map);
   try {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
@@ -948,7 +946,13 @@ onMounted(async () => {
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
+  
+  landmarkLayer = L.layerGroup().addTo(map)
+  landmarks.value = loadLandmarksFromStorage()
+  renderLandmarks()
 
+  viewHistory.value = loadHistoryFromStorage()
+  
   const [stopsRes, routesRes, poisRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
     fetch('/data/mlit_routes.json'),
