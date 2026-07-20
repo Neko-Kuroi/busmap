@@ -999,7 +999,7 @@ onMounted(async () => {
     ? L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 60,
-        disableClusteringAtZoom: 15,
+        disableClusteringAtZoom: 16,
         spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
         iconCreateFunction: createClusterIcon
