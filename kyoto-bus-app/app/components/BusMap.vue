@@ -618,25 +618,13 @@ function onPopupOperatorClick(operator) {
   query.value = operator
 }
 
-// function buildStopSubLabel(stop) {
-//   const routesHtml = stop.routes.length
-//     ? stop.routes
-//         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-//         .join('<br>')
-//     : '（系統情報なし）'
-//   return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
-// }
-
 function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-        .join('') 
-    : '（系統情報なし）';
-  
-  // class="stop-routes-inline" を div に確実に付与します
-  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span>` +
-         `<div class="stop-routes-inline">${routesHtml}</div>`;
+        .join('<br>')
+    : '（系統情報なし）'
+  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><br><span class="stop-routes-inline">${routesHtml}</span>`
 }
 
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
@@ -1670,26 +1658,6 @@ onMounted(async () => {
 
 :deep(.stop-external-links a:hover) {
   text-decoration: underline;
-}
-
-/* 既存の :deep(...) 部分を以下に書き換えてください */
-.stop-routes-inline {
-  display: block !important;        /* 確実にブロック化 */
-  max-height: 10em !important;      /* 7行分で制限 */
-  overflow-y: auto !important;      /* スクロール有効化 */
-  margin: 4px 0 !important;
-  padding: 4px !important;
-  border: 1px solid #ddd !important;
-  border-radius: 4px !important;
-  background: #fdfdfd !important;
-}
-
-/* リンクも縦並びに */
-.route-link {
-  display: block !important;
-  padding: 2px 0 !important;
-  color: #1d4ed8 !important;
-  text-decoration: underline dotted !important;
 }
 
 /* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
