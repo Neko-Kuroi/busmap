@@ -2,87 +2,94 @@
   <div class="map-wrap">
     <div id="map" ref="mapEl"></div>
 
-    <div class="status" v-if="loading">停留所データを読み込み中…</div>
+    <div class="ui-overlay">
+      <div class="status" v-if="loading">停留所データを読み込み中…</div>
 
-    <div class="panel" v-else>
-      <div class="count">{{ stopCount.toLocaleString() }} 件の停留所（{{ routeCount.toLocaleString() }} 系統）</div>
+      <div class="panel" v-else>
+        <div class="count">{{ stopCount.toLocaleString() }} 件の停留所（{{ routeCount.toLocaleString() }} 系統）</div>
 
-      <input
-        class="search"
-        type="text"
-        v-model="query"
-        placeholder="系統名・事業者名・停留所名（ひらがな可）で検索"
-      />
+        <input
+          class="search"
+          type="text"
+          v-model="query"
+          placeholder="系統名・事業者名・停留所名で検索"
+        />
 
-      <button
-        v-if="geoSupported"
-        class="locate-btn"
-        @click="locateUser"
-        :disabled="locating"
-      >
-        📍 {{ locating ? '取得中…' : '現在地を表示' }}
-      </button>
-      <p class="geo-unsupported" v-else>このブラウザ・接続方法では現在地取得は使えません</p>
-      <p class="geo-error" v-if="geoError">{{ geoError }}</p>
-
-      <div class="route-list" v-if="query">
         <button
-          v-for="r in filteredRoutes"
-          :key="r.operator + '||' + r.route"
-          class="route-item"
-          :class="{ active: isActive(r) }"
-          @click="selectRoute(r)"
+          v-if="geoSupported"
+          class="locate-btn"
+          @click="locateUser"
+          :disabled="locating"
         >
-          <span class="route-name">{{ r.route }}</span>
-          <span class="route-operator">{{ r.operator }}（{{ r.count }}件）</span>
-          <span class="route-matched-stop" v-if="r.matchedStopNames.length">
-            🚏 {{ r.matchedStopNames.join('、') }}
-          </span>
+          📍 {{ locating ? '取得中…' : '現在地を表示' }}
         </button>
-        <p class="no-hit" v-if="filteredRoutes.length === 0">該当する系統・停留所がありません</p>
-      </div>
+        <p class="geo-unsupported" v-else>このブラウザ・接続方法では現在地取得は使えません</p>
+        <p class="geo-error" v-if="geoError">{{ geoError }}</p>
 
-      <div class="selected" v-if="selectedRoute">
-        <span>選択中: <strong>{{ selectedRoute.route }}</strong>（{{ selectedRoute.operator }}）</span>
-        <button class="clear" @click="clearSelection">解除</button>
-      </div>
-    </div>
-
-    <div class="right-stack">
-      <div class="landmark-panel">
-        <div class="landmark-header">📍 ランドマークを追加</div>
-        <form class="landmark-form" @submit.prevent="addLandmark">
-          <input
-            class="landmark-input"
-            type="text"
-            v-model="landmarkAddress"
-            placeholder="住所を入力"
-            :disabled="geocoding"
-          />
+        <div class="route-list" v-if="query">
           <button
-            class="landmark-add-btn"
-            type="submit"
-            :disabled="geocoding || !landmarkAddress.trim()"
+            v-for="r in filteredRoutes"
+            :key="r.operator + '||' + r.route"
+            class="route-item"
+            :class="{ active: isActive(r) }"
+            @click="selectRoute(r)"
           >
-            {{ geocoding ? '検索中…' : '追加' }}
+            <span class="route-name">{{ r.route }}</span>
+            <span class="route-operator">{{ r.operator }}（{{ r.count }}件）</span>
+            <span class="route-matched-stop" v-if="r.matchedStopNames.length">
+              🚏 {{ r.matchedStopNames.join('、') }}
+            </span>
           </button>
-        </form>
-        <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
-        <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} 件登録中</p>
+          <p class="no-hit" v-if="filteredRoutes.length === 0">該当する系統・停留所がありません</p>
+        </div>
+
+        <div class="selected" v-if="selectedRoute">
+          <span>選択中: <strong>{{ selectedRoute.route }}</strong>（{{ selectedRoute.operator }}）</span>
+          <button class="clear" @click="clearSelection">解除</button>
+        </div>
       </div>
 
-      <div class="history-panel" v-if="viewHistory.length">
-        <div class="history-header">🕘 最近見た停留所</div>
-        <div class="history-list">
-          <button
-            v-for="h in viewHistory"
-            :key="h.coordKey"
-            class="history-item"
-            @click="goToHistoryEntry(h)"
-          >
-            <span class="history-name">{{ h.name }}</span>
-            <span class="history-other" v-if="h.otherCount">他{{ h.otherCount }}件</span>
+      <div class="right-stack">
+        <div class="landmark-panel">
+          <button class="landmark-header" @click="landmarkPanelOpen = !landmarkPanelOpen">
+            📍 ランドマークを追加
+            <span class="landmark-toggle-arrow">{{ landmarkPanelOpen ? '▲' : '▼' }}</span>
           </button>
+          <template v-if="landmarkPanelOpen">
+            <form class="landmark-form" @submit.prevent="addLandmark">
+              <input
+                class="landmark-input"
+                type="text"
+                v-model="landmarkAddress"
+                placeholder="住所を入力"
+                :disabled="geocoding"
+              />
+              <button
+                class="landmark-add-btn"
+                type="submit"
+                :disabled="geocoding || !landmarkAddress.trim()"
+              >
+                {{ geocoding ? '検索中…' : '追加' }}
+              </button>
+            </form>
+            <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
+            <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} / {{ LANDMARK_LIMIT }} 件登録中</p>
+          </template>
+        </div>
+
+        <div class="history-panel" v-if="viewHistory.length">
+          <div class="history-header">🕘 最近見た停留所</div>
+          <div class="history-list">
+            <button
+              v-for="h in viewHistory"
+              :key="h.coordKey"
+              class="history-item"
+              @click="goToHistoryEntry(h)"
+            >
+              <span class="history-name">{{ h.name }}</span>
+              <span class="history-other" v-if="h.otherCount">他{{ h.otherCount }}件</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -107,6 +114,8 @@ const landmarkAddress = ref('')
 const landmarkError = ref('')
 const geocoding = ref(false)
 const landmarks = ref([])
+// ランドマーク入力欄は初期状態でたたんでおき、ヘッダー部分をクリックすると開く
+const landmarkPanelOpen = ref(false)
 
 // 最近見た停留所の履歴。座標(coordKey)ごとに1件のみ保持し、再訪すると
 // 先頭に繰り上がる（ブラウザの閲覧履歴と同じ挙動）。localStorageに永続化する
@@ -117,6 +126,7 @@ let map = null
 let baseLayer = null
 let highlightLayer = null
 let landmarkLayer = null
+let poiLayer = null
 let stopsById = {}
 let markersById = {}
 let highlightMarkersById = {}
@@ -285,6 +295,51 @@ function createLandmarkIcon() {
   })
 }
 
+// 周辺POI用：小さい逆三角形の自作SVGアイコン。バス停の丸ドット・星・
+// ランドマークピンのいずれとも被らない青系統・半透明(40%)にして、
+// 最大50個同時に出ても地図が主張しすぎないようにする
+const POI_ICON_SIZE = 14
+function createPoiIcon() {
+  const html = `<svg width="${POI_ICON_SIZE}" height="${POI_ICON_SIZE}" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="1,1 13,1 7,13" fill="#2563eb" fill-opacity="0.4" stroke="#1d4ed8" stroke-width="1"/>
+  </svg>`
+  return window.__L.divIcon({
+    html,
+    className: 'poi-marker-icon',
+    iconSize: [POI_ICON_SIZE, POI_ICON_SIZE],
+    iconAnchor: [POI_ICON_SIZE / 2, POI_ICON_SIZE / 2]
+  })
+}
+
+// 停留所（黄色ドット・星どちらも）をクリックしたときに呼ばれる。
+// その座標の周辺POI(事前計算済み・最大50件)を、既存のPOIマーカーを全部
+// 消してから描き直す。POIは常時表示ではなくクリックした名称のみ
+// ツールチップで見せる（bindTooltipはpermanent:falseでクリック時にopenTooltip）
+function showPoisForCoord(coordKey) {
+  if (!poiLayer) return
+  poiLayer.clearLayers()
+  const entry = groupsByCoordKey[coordKey]
+  const pois = entry && entry.nearbyPois
+  if (!pois || !pois.length) return
+
+  const L = window.__L
+  for (const poi of pois) {
+    const marker = L.marker([poi.lat, poi.lon], { icon: createPoiIcon() })
+    marker.bindTooltip(escapeHtml(poi.name), {
+      direction: 'top',
+      offset: [0, -POI_ICON_SIZE / 2],
+      className: 'poi-tooltip'
+    })
+    marker.on('click', (e) => {
+      // 停留所側のクリックハンドラ(showPoisForCoord自体)が再度呼ばれて
+      // poiLayerが消えてしまわないよう、マップへのクリック伝播を止める
+      L.DomEvent.stopPropagation(e)
+      marker.openTooltip()
+    })
+    marker.addTo(poiLayer)
+  }
+}
+
 function buildLandmarkPopupHtml(landmark, number) {
   const lat = landmark.lat
   const lng = landmark.lng
@@ -342,16 +397,36 @@ function renderLandmarks() {
   })
 }
 
+const LANDMARK_LIMIT = 20 // 上限に厳密な根拠はないが、無制限は脆弱性になるため上限を設ける
+
 async function addLandmark() {
   const address = landmarkAddress.value.trim()
   if (!address) return
 
   landmarkError.value = ''
+
+  // 上限に達している場合はジオコーディングすら行わずここで止める。
+  // 「新しい方を優先して古いものを自動的に消す」方式は、上限の存在を
+  // 知らないユーザーが前に登録したランドマークが突然消えて驚くことになるため、
+  // 追加をブロックして「削除してから追加してください」と促す方式にする
+  if (landmarks.value.length >= LANDMARK_LIMIT) {
+    landmarkError.value = `ランドマークは${LANDMARK_LIMIT}件までです。削除してから追加してください`
+    return
+  }
+
   geocoding.value = true
   try {
     const result = await normalize(address, { level: 5 })
     if (!result || !result.point) {
       landmarkError.value = '座標を特定できませんでした。住所を見直してください'
+      return
+    }
+
+    // このアプリは京都エリアのバス停を対象にしているため、ジオコーディング
+    // 結果の都道府県が京都府でない場合は入り口で弾く。pref自体が取れない
+    // （通り名住所などで正規化レベルが足りず特定できない）場合も安全側で弾く
+    if (result.pref !== '京都府') {
+      landmarkError.value = '京都府内の住所のみ登録できます'
       return
     }
 
@@ -578,6 +653,7 @@ function buildLocationExtrasHtml(lat, lng) {
     <div class="stop-external-links">
       <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16" target="_blank" rel="noopener">📍 Google Maps</a>
       <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+      <a href="https://maps.apple.com/?ll=${lat},${lng}&z=19" target="_blank" rel="noopener">📍 Apple Maps</a>
       <a href="https://earth.google.com/web/@${lat},${lng},0a,1000d" target="_blank" rel="noopener">📍 Google Earth</a>
       <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
@@ -599,8 +675,8 @@ function buildPopupHtml(stop, subLabel) {
     <p class="stop-name">${escapeHtml(stop.name)}</p>
     ${kanaHtml}
     ${subLabelHtml}
-    ${extrasHtml}
     ${linkHtml}
+    ${extrasHtml}
   </div>`
 }
 
@@ -654,8 +730,8 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.45
-const DIMMED_OPACITY = 0.3
+const BASE_OPACITY = 0.55
+const DIMMED_OPACITY = 0.55
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
@@ -718,6 +794,7 @@ function renderHighlight(route, anchorStopId) {
       bindHoverPopup(marker)
 
       marker._coordKey = coordKey
+      marker.on('click', () => showPoisForCoord(coordKey))
 
       const groupStops = entry ? entry.stops : [stop]
       marker.bindTooltip(buildMiniStopLabel(groupStops[0], groupStops.length), {
@@ -771,8 +848,14 @@ onMounted(async () => {
 
   map = L.map(mapEl.value, {
     center: [35.011, 135.768],
-    zoom: 14
+    zoom: 14,
+    // デフォルトのズームボタン(左上)は検索パネルの下に隠れて押せなくなるため
+    // 無効化し、右下(bottomright)に付け直す。一時的に右側中央付近まで
+    // CSSで引き上げていたが、同じコーナーの帰属表示(Leaflet/OSM/Google)まで
+    // 一緒に動いて地図が見づらくなったため撤回し、右下のまま据え置く
+    zoomControl: false
   })
+  L.control.zoom({ position: 'bottomright' }).addTo(map)
 
   map.on('popupopen', (e) => {
     const el = e.popup.getElement()
@@ -794,7 +877,15 @@ onMounted(async () => {
 
   map.on('popupclose', (e) => {
     const marker = e.popup._source
-    if (!marker || marker._highlightStopId == null) return
+    if (!marker) return
+
+    // 停留所（黄色ドット・星どちらも）のポップアップが閉じたら、
+    // クリックで表示していたPOIマーカーも一緒に消す
+    if (marker._coordKey != null && poiLayer) {
+      poiLayer.clearLayers()
+    }
+
+    if (marker._highlightStopId == null) return
     const id = marker._highlightStopId
     if (highlightMarkersById[id] !== marker) return
     if (marker.getTooltip()) return
@@ -858,12 +949,17 @@ onMounted(async () => {
     console.error('❌ Error adding tile layer:', e);
   }
 
-  const [stopsRes, routesRes] = await Promise.all([
+  const [stopsRes, routesRes, poisRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
-    fetch('/data/mlit_routes.json')
+    fetch('/data/mlit_routes.json'),
+    // nearby_pois.jsonはオフラインの距離計算スクリプトで別途生成する想定のファイル。
+    // まだ生成していない・置いていない環境でもアプリ自体は動くよう、
+    // 取得失敗はcatchして空データ扱いにする（POI機能が使えないだけで他は正常動作する）
+    fetch('/data/nearby_pois.json').catch(() => null)
   ])
   const stops = await stopsRes.json()
   allRoutes = await routesRes.json()
+  const nearbyPoisByCoord = (poisRes && poisRes.ok) ? await poisRes.json() : {}
 
   stopCount.value = stops.length
   routeCount.value = allRoutes.length
@@ -884,6 +980,7 @@ onMounted(async () => {
       })
     : L.layerGroup()
   highlightLayer = L.layerGroup().addTo(map)
+  poiLayer = L.layerGroup().addTo(map)
 
   const stopGroupsByCoord = new Map()
   for (const stop of stops) {
@@ -893,15 +990,25 @@ onMounted(async () => {
   }
 
   // groupsByCoordKeyを先に全件分作っておく（黄色ドットのマーカー作成ループの中で
-  // buildGroupedPopupHtml(coordKey, ...)が参照するため、先に埋めておく必要がある）
+  // buildGroupedPopupHtml(coordKey, ...)が参照するため、先に埋めておく必要がある）。
+  // nearbyPois（周辺POIリスト、最大50件・距離順）もここで一緒に紐付けておく
   for (const [coordKey, group] of stopGroupsByCoord) {
-    groupsByCoordKey[coordKey] = { stops: group, baseMarker: null, starMarker: null }
+    groupsByCoordKey[coordKey] = {
+      stops: group,
+      baseMarker: null,
+      starMarker: null,
+      nearbyPois: nearbyPoisByCoord[coordKey] || null
+    }
   }
 
   for (const [coordKey, group] of stopGroupsByCoord) {
     const first = group[0]
     const marker = L.marker([first.lat, first.lng], {
-      icon: createDotIcon(map.getZoom())
+      icon: createDotIcon(map.getZoom()),
+      // 初期表示時からBASE_OPACITYを適用する。これが無いとLeafletの
+      // デフォルト(不透明度1.0)のまま描画され、系統選択→解除を一度も
+      // していない状態ではBASE_OPACITYの値が一切反映されなかった
+      opacity: BASE_OPACITY
     })
 
     const initialPage = groupPageByCoord[coordKey] || 0
@@ -909,6 +1016,7 @@ onMounted(async () => {
     bindHoverPopup(marker)
 
     marker._coordKey = coordKey
+    marker.on('click', () => showPoisForCoord(coordKey))
     marker.addTo(baseLayer)
     groupsByCoordKey[coordKey].baseMarker = marker
 
@@ -925,7 +1033,9 @@ onMounted(async () => {
 .map-wrap {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
+  height: 100dvh; /* モバイルのアドレスバー分の高さズレに追従し、
+                     右下のズームボタン・帰属表示が画面外にはみ出さないようにする */
 }
 
 #map {
@@ -933,11 +1043,29 @@ onMounted(async () => {
   height: 100%;
 }
 
-.status {
+/* 左の検索パネルと右のランドマーク・履歴パネルをまとめる外枠。
+   flex-wrapにより、横幅が足りる画面では横並び、足りない画面（iPhone等）では
+   自動的に折り返して縦積みになり、重なりを防ぐ。優先順位は書いた順
+   （panelが先＝1行目を占有、right-stackは入りきらなければ2行目に折り返す） */
+.ui-overlay {
   position: absolute;
   top: 12px;
   left: 12px;
+  right: 12px;
   z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+  max-height: calc(100vh - 24px);
+}
+
+.ui-overlay > * {
+  pointer-events: auto;
+}
+
+.status {
   background: rgba(255, 255, 255, 0.92);
   padding: 6px 12px;
   border-radius: 6px;
@@ -946,10 +1074,6 @@ onMounted(async () => {
 }
 
 .panel {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
   background: rgba(255, 255, 255, 0.96);
   padding: 10px 12px;
   border-radius: 8px;
@@ -1080,14 +1204,14 @@ onMounted(async () => {
 }
 
 .right-stack {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: min(260px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  /* 横並びできる時は右端に寄せ、折り返して2行目に落ちた時はその行の
+     右端に寄る（ui-overlayがflex-wrapのため、折り返し後の行にも効く） */
+  margin-left: auto;
 }
 
 .landmark-panel {
@@ -1099,14 +1223,28 @@ onMounted(async () => {
 }
 
 .landmark-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   font-weight: 600;
   color: #333;
-  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.landmark-toggle-arrow {
+  font-size: 10px;
+  color: #888;
 }
 
 .landmark-form {
   display: flex;
   gap: 6px;
+  margin-top: 6px;
 }
 
 .landmark-input {
@@ -1157,8 +1295,6 @@ onMounted(async () => {
   border-radius: 8px;
   font-size: 13px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-  max-height: 40vh;
-  overflow-y: auto;
 }
 
 .history-header {
@@ -1171,6 +1307,10 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* 直近4件ぶんの高さに収め、5件目以降はスクロールで見る
+     (history-item高さ約26px + gap4px を4件ぶん) */
+  max-height: 124px;
+  overflow-y: auto;
 }
 
 .history-item {
@@ -1208,6 +1348,20 @@ onMounted(async () => {
 :deep(.landmark-pin-icon) svg {
   display: block;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+:deep(.poi-marker-icon) {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+:deep(.poi-tooltip) {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
 }
 
 :deep(.landmark-popup) {
@@ -1307,7 +1461,8 @@ onMounted(async () => {
   border-radius: 50%;
   background: #eaff00;
   border: 1px solid #d4e100;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+  /* box-shadow: 0 0 1px rgba(0, 0, 0, 0.5); 描画負荷軽減のため無効化。
+     代わりにBASE_OPACITYを0.45→0.55に上げて視認性を補っている */
 }
 
 :deep(.stop-cluster-icon) {
@@ -1504,4 +1659,9 @@ onMounted(async () => {
 :deep(.stop-external-links a:hover) {
   text-decoration: underline;
 }
+
+/* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
+   引き上げるCSSを付けていたが、同じコーナーにいる帰属表示(Leaflet/OSM/Google)
+   まで一緒に引き上がって地図の視認性を損なうため撤回し、素直に右下のまま
+   にする（地図の見やすさを優先） */
 </style>
