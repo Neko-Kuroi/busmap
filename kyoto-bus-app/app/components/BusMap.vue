@@ -1489,8 +1489,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: #eaff00;
   border: 1px solid #d4e100;
-  /* box-shadow: 0 0 1px rgba(0, 0, 0, 0.5); 描画負荷軽減のため無効化。
-     代わりにBASE_OPACITYを0.45→0.55に上げて視認性を補っている */
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
 }
 
 :deep(.stop-cluster-icon) {
