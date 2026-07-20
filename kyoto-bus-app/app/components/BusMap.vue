@@ -848,7 +848,7 @@ onMounted(async () => {
 
   map = L.map(mapEl.value, {
     center: [35.011, 135.768],
-    zoom: 15,
+    zoom: 13,
     // デフォルトのズームボタン(左上)は検索パネルの下に隠れて押せなくなるため
     // 無効化し、右下(bottomright)に付け直す。一時的に右側中央付近まで
     // CSSで引き上げていたが、同じコーナーの帰属表示(Leaflet/OSM/Google)まで
