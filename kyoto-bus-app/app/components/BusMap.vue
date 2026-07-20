@@ -1502,8 +1502,9 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.15);
-  border: 1px solid rgba(250, 250, 200, 0.35);
-
+  border: 1px solid rgba(250, 230, 200, 0.35);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  
   text-align: center;
   font-weight: 700;
   font-size: 12px;
