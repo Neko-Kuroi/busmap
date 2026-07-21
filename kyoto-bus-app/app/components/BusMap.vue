@@ -733,8 +733,8 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.65
-const DIMMED_OPACITY = 0.65
+const BASE_OPACITY = 0.45
+const DIMMED_OPACITY = 0.55
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
