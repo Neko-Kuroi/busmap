@@ -953,7 +953,7 @@ onMounted(async () => {
     L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
       attribution: '© Google',
       maxZoom: 21,
-      opacity: 0.4
+      opacity: 0.5
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
