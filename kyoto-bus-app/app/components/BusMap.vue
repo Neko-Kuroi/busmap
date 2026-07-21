@@ -1810,7 +1810,7 @@ onMounted(async () => {
   position: absolute;
   opacity: 0.7;
   right: 0px;
-  bottom: 300px;
+  bottom: 150px;
   width: 250px;
   height: auto;
   z-index: 1000;
