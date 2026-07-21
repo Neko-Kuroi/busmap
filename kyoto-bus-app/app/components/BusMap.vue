@@ -1092,7 +1092,7 @@ onMounted(async () => {
 }
 
 .status {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.62);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 13px;
@@ -1100,7 +1100,7 @@ onMounted(async () => {
 }
 
 .panel {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.66);
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -1489,7 +1489,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: #eaff00;
   border: 1px solid #d4e100;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.4); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
 }
 
 :deep(.stop-cluster-icon) {
@@ -1694,6 +1694,16 @@ onMounted(async () => {
 
 :deep(.stop-external-links a:hover) {
   text-decoration: underline;
+}
+
+:deep(.leaflet-popup-content-wrapper) {
+  background: rgba(255, 255, 255, 0.65);   /* 0.75の数値を下げるほど透明に */
+  backdrop-filter: blur(4px);              /* 任意：すりガラス風にしたい場合 */
+}
+
+:deep(.leaflet-popup-tip) {
+  background: rgba(255, 255, 255, 0.65);   /* ← これを忘れると、箱は透明なのに
+                                                下の三角だけ真っ白のまま浮いて見える */
 }
 
 /* ズームボタンはbottomright（右下）に据え置く。以前は右手親指が届く高さまで
