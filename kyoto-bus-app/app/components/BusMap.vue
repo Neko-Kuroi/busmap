@@ -990,29 +990,29 @@ onMounted(async () => {
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
       attribution: '© 国土地理院',
       maxZoom: 21,
-      opacity: 0.5
-    }).addTo(map);
-  } catch (e) {
-    console.error('❌ Error adding tile layer:', e);
-  }
-  try {
-    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-      maxZoom: 21,
       opacity: 0.6
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
-
   // try {
-  //   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
-  //     attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+  //   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
   //     maxZoom: 21,
-  //     opacity: 0.8
+  //     opacity: 0.6
   //   }).addTo(map);
   // } catch (e) {
   //   console.error('❌ Error adding tile layer:', e);
   // }
+
+  try {
+    L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+      attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+      maxZoom: 21,
+      opacity: 0.8
+    }).addTo(map);
+  } catch (e) {
+    console.error('❌ Error adding tile layer:', e);
+  }
   
   landmarkLayer = L.layerGroup().addTo(map)
   landmarks.value = loadLandmarksFromStorage()
