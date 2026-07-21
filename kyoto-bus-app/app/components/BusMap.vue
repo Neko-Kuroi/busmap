@@ -354,6 +354,31 @@ function showPoisForCoord(coordKey) {
   }
 }
 
+// function buildLandmarkPopupHtml(landmark, number) {
+//   const lat = landmark.lat
+//   const lng = landmark.lng
+//   const streetViewHtml = `<div class="landmark-streetview">
+//   <iframe
+//     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
+//     width="200"
+//     height="200"
+//     style="border:0;"
+//     loading="lazy"
+//     allowfullscreen>
+//   </iframe>
+// </div>`
+//   const externalLinksHtml = `
+//     <div class="landmark-external-links">
+//       <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+//     </div>`
+//   return `<div class="landmark-popup">
+//     <p class="landmark-popup-title">📍 ランドマーク #${number}</p>
+//     <p class="landmark-popup-address">${escapeHtml(landmark.address)}</p>
+//     ${streetViewHtml}
+//     ${externalLinksHtml}
+//     <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">このランドマークを削除</button>
+//   </div>`
+// }
 function buildLandmarkPopupHtml(landmark, number) {
   const lat = landmark.lat
   const lng = landmark.lng
@@ -370,6 +395,8 @@ function buildLandmarkPopupHtml(landmark, number) {
   const externalLinksHtml = `
     <div class="landmark-external-links">
       <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+      <a href="https://maps.apple.com/?ll=${lat},${lng}&z=19" target="_blank" rel="noopener">📍 Apple Maps</a>
+      <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
     </div>`
   return `<div class="landmark-popup">
     <p class="landmark-popup-title">📍 ランドマーク #${number}</p>
