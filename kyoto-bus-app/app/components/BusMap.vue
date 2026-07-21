@@ -975,9 +975,20 @@ onMounted(async () => {
   //   maxZoom: 21
   // }).addTo(map)
   
+  // try {
+  //   L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
+    
+  //     attribution: '© Google',
+  //     maxZoom: 21,
+  //     opacity: 0.5
+  //   }).addTo(map);
+  // } catch (e) {
+  //   console.error('❌ Error adding tile layer:', e);
+  // }
+  
   try {
-    L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
-      attribution: '© Google',
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+      attribution: '© 国土地理院',
       maxZoom: 21,
       opacity: 0.5
     }).addTo(map);
