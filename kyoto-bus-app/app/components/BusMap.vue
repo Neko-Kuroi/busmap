@@ -1812,7 +1812,7 @@ onMounted(async () => {
   position: absolute;
   right: 12px;
   bottom: 90px;
-  width: 40px;
+  width: 300px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
