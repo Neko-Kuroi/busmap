@@ -1805,14 +1805,13 @@ onMounted(async () => {
 }
 
 /* 右下ロゴ：ズームボタンのすぐ上に小さく配置する。
-   ズームボタン(2つ、各約26px)+Leafletの標準マージン(10px)+↑で追加した
-   margin-bottom(10px)を踏まえて、その上に載る高さに固定値で置いている。
    ズームボタンの実際の高さが変わった場合はここも調整が必要 */
 .corner-logo {
   position: absolute;
-  right: 12px;
-  bottom: 90px;
-  width: 300px;
+  opacity: 0.7;
+  right: 0px;
+  bottom: 300px;
+  width: 250px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
