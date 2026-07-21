@@ -1698,7 +1698,7 @@ onMounted(async () => {
 
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.55);   /* 0.75の数値を下げるほど透明に */
-  /* backdrop-filter: blur(4px); */              /* 任意：すりガラス風にしたい場合 */
+  backdrop-filter: blur(2px);               /* 任意：すりガラス風にしたい場合 */
 }
 
 :deep(.leaflet-popup-tip) {
