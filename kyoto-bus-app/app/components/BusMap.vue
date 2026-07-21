@@ -1257,19 +1257,19 @@ onMounted(async () => {
 
 .route-item {
   text-align: left;
-  background: rgba(243, 244, 246, 0.8);
+  background: rgba(243, 244, 246, 0.85);
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 6px 8px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* 一つおきに白寄りの明るさにして、同じグレーが並ぶ単調さを崩す */
 .route-item:nth-child(even) {
-  background: rgba(253, 253, 253, 0.8);
+  background: rgba(250, 250, 252, 0.85);
 }
 
 .route-item:hover {
