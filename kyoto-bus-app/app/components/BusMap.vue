@@ -2,6 +2,9 @@
   <div class="map-wrap">
     <div id="map" ref="mapEl"></div>
 
+    <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
+    <img src="/logo.png" alt="" class="corner-logo" />
+
     <div class="ui-overlay">
       <div class="status" v-if="loading">停留所データを読み込み中…</div>
 
@@ -1793,4 +1796,25 @@ onMounted(async () => {
    引き上げるCSSを付けていたが、同じコーナーにいる帰属表示(Leaflet/OSM/Google)
    まで一緒に引き上がって地図の視認性を損なうため撤回し、素直に右下のまま
    にする（地図の見やすさを優先） */
+
+/* 右下コーナー(ズームボタン＋帰属表示)を地図の端から少し浮かせる。
+   0だと帰属表示の文字が地図の縁ぎりぎりで見切れることがあるため、
+   下に余白を入れて全体を少し上に持ち上げる */
+:deep(.leaflet-bottom.leaflet-right) {
+  margin-bottom: 10px;
+}
+
+/* 右下ロゴ：ズームボタンのすぐ上に小さく配置する。
+   ズームボタン(2つ、各約26px)+Leafletの標準マージン(10px)+↑で追加した
+   margin-bottom(10px)を踏まえて、その上に載る高さに固定値で置いている。
+   ズームボタンの実際の高さが変わった場合はここも調整が必要 */
+.corner-logo {
+  position: absolute;
+  right: 12px;
+  bottom: 90px;
+  width: 40px;
+  height: auto;
+  z-index: 1000;
+  pointer-events: none;
+}
 </style>
