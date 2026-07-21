@@ -736,6 +736,11 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
 const BASE_OPACITY = 0.45
 const DIMMED_OPACITY = 0.55
 
+// markerClusterGroupのdisableClusteringAtZoomと、zoomendハンドラでの
+// アイコン更新ループの両方から参照する共有定数。2箇所に同じ値を別々に
+// 書くと、片方だけ変更してズレる事故を防ぐため一箇所にまとめる
+const DISABLE_CLUSTERING_AT_ZOOM = 14
+
 function renderHighlight(route, anchorStopId) {
   if (!map) return
   highlightMarkersById = {}
@@ -940,7 +945,14 @@ onMounted(async () => {
 
   map.on('zoomend', () => {
     const z = map.getZoom()
-    if (baseLayer) baseLayer.eachLayer(l => l.setIcon(createDotIcon(z)))
+    // DISABLE_CLUSTERING_AT_ZOOM未満では黄色ドットは全てクラスタに吸収されて
+    // 画面上に個別マーカーとして1つも見えていない。それにもかかわらず
+    // baseLayer.eachLayerは(leaflet.markercluster内部の実装上)クラスタツリー
+    // 全体の全マーカーを返す仕様のため、見た目に変化が無いのに毎回全件分の
+    // setIconが走っていた。個別ドットが実際に見えるズーム帯だけループを回す
+    if (baseLayer && z >= DISABLE_CLUSTERING_AT_ZOOM) {
+      baseLayer.eachLayer(l => l.setIcon(createDotIcon(z)))
+    }
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
 
@@ -974,7 +986,17 @@ onMounted(async () => {
   renderLandmarks()
 
   viewHistory.value = loadHistoryFromStorage()
-  
+
+  // 事業者単位のバスルート線　道路 // 事業者単位のバスルート線
+  //fetch('/data/route_lines.geojson')
+  //  .then(res => res.json())
+  //  .then(routeLines => {
+  //    L.geoJSON(routeLines, {
+  //      interactive: false,
+  //      style: { color: '#94a3b8', weight: 1.5, opacity: 0.5 }
+  //    }).addTo(map)
+  //  })
+
   const [stopsRes, routesRes, poisRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
     fetch('/data/mlit_routes.json'),
@@ -999,7 +1021,7 @@ onMounted(async () => {
     ? L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 60,
-        disableClusteringAtZoom: 14,
+        disableClusteringAtZoom: DISABLE_CLUSTERING_AT_ZOOM,
         spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
         iconCreateFunction: createClusterIcon
