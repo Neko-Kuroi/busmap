@@ -379,6 +379,7 @@ function showPoisForCoord(coordKey) {
 //     <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">このランドマークを削除</button>
 //   </div>`
 // }
+
 function buildLandmarkPopupHtml(landmark, number) {
   const lat = landmark.lat
   const lng = landmark.lng
