@@ -1808,10 +1808,10 @@ onMounted(async () => {
    ズームボタンの実際の高さが変わった場合はここも調整が必要 */
 .corner-logo {
   position: absolute;
-  opacity: 0.7;
+  opacity: 0.65;
   right: 0px;
   bottom: 150px;
-  width: 250px;
+  width: 220px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
