@@ -132,6 +132,8 @@ let baseLayer = null
 let highlightLayer = null
 let landmarkLayer = null
 let poiLayer = null
+let routeLinesLayer = null
+let routeLinesGeojson = null // {type:'FeatureCollection', features:[...]} 全事業者ぶんを保持し、activeOperatorで都度絞り込む
 let stopsById = {}
 let markersById = {}
 let highlightMarkersById = {}
@@ -207,15 +209,36 @@ function isActive(r) {
   return selectedRoute.value && selectedRoute.value.operator === r.operator && selectedRoute.value.route === r.route
 }
 
+// 事業者名(activeOperator)でroute_lines.geojsonを絞り込んで描き直す。
+// 系統選択・運行会社名クリックのどちらからも呼ばれる共通のレンダリング関数。
+// operatorがnullなら消すだけ（系統選択解除時など）
+function renderRouteLines(operator) {
+  if (!routeLinesLayer) return
+  routeLinesLayer.clearLayers()
+  if (!operator || !routeLinesGeojson) return
+
+  const L = window.__L
+  const filtered = {
+    type: 'FeatureCollection',
+    features: routeLinesGeojson.features.filter(f => f.properties.operator === operator)
+  }
+  L.geoJSON(filtered, {
+    interactive: false,
+    style: { color: '#f472b6', weight: 3, opacity: 0.5 }
+  }).addTo(routeLinesLayer)
+}
+
 function clearSelection() {
   selectedRoute.value = null
   query.value = ''
   renderHighlight(null)
+  renderRouteLines(null)
 }
 
 function selectRoute(r, anchorStopId) {
   selectedRoute.value = r
   renderHighlight(r, anchorStopId)
+  renderRouteLines(r.operator)
 }
 
 function stopRadius(zoom, isHighlight) {
@@ -661,6 +684,8 @@ function onPopupRouteClick(operator, route, anchorStopId) {
 
 function onPopupOperatorClick(operator) {
   query.value = operator
+  // 系統は選択しないが、事業者の路線パスだけは表示する
+  renderRouteLines(operator)
 }
 
 function buildStopSubLabel(stop) {
@@ -1061,17 +1086,19 @@ onMounted(async () => {
   //    }).addTo(map)
   //  })
 
-  const [stopsRes, routesRes, poisRes] = await Promise.all([
+  const [stopsRes, routesRes, poisRes, routeLinesRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
     fetch('/data/mlit_routes.json'),
     // nearby_pois.jsonはオフラインの距離計算スクリプトで別途生成する想定のファイル。
     // まだ生成していない・置いていない環境でもアプリ自体は動くよう、
     // 取得失敗はcatchして空データ扱いにする（POI機能が使えないだけで他は正常動作する）
-    fetch('/data/nearby_pois.json').catch(() => null)
+    fetch('/data/nearby_pois.json').catch(() => null),
+    fetch('/data/route_lines.geojson').catch(() => null)
   ])
   const stops = await stopsRes.json()
   allRoutes = await routesRes.json()
   const nearbyPoisByCoord = (poisRes && poisRes.ok) ? await poisRes.json() : {}
+  routeLinesGeojson = (routeLinesRes && routeLinesRes.ok) ? await routeLinesRes.json() : null
 
   stopCount.value = stops.length
   routeCount.value = allRoutes.length
