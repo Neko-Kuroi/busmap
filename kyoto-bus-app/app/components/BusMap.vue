@@ -1697,12 +1697,12 @@ onMounted(async () => {
 }
 
 :deep(.leaflet-popup-content-wrapper) {
-  background: rgba(245, 245, 245, 0.65);   /* 0.75の数値を下げるほど透明に */
+  background: rgba(245, 245, 245, 0.55);   /* 0.75の数値を下げるほど透明に */
   backdrop-filter: blur(6px);               /* 任意：すりガラス風にしたい場合 */
 }
 
 :deep(.leaflet-popup-tip) {
-  background: rgba(245, 245, 245, 0.65);   /* ← これを忘れると、箱は透明なのに
+  background: rgba(245, 245, 245, 0.55);   /* ← これを忘れると、箱は透明なのに
                                                 下の三角だけ真っ白のまま浮いて見える */
 }
 
