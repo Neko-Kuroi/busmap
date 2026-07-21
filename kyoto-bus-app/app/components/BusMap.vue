@@ -12,6 +12,7 @@
           class="search"
           type="text"
           v-model="query"
+          maxlength="50"
           placeholder="系統名・事業者名・停留所名で検索"
         />
 
@@ -61,6 +62,7 @@
                 class="landmark-input"
                 type="text"
                 v-model="landmarkAddress"
+                maxlength="140"
                 placeholder="住所を入力"
                 :disabled="geocoding"
               />
@@ -154,7 +156,7 @@ function coordKeyOf(lat, lng) {
 }
 
 const filteredRoutes = computed(() => {
-  const q = query.value.trim()
+  const q = sanitizeInput(query.value, 50)
   if (!q) return []
 
   const seenKeys = new Set()
@@ -267,6 +269,18 @@ function escapeHtml(str) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+// 検索欄・ランドマーク住所欄、両方の入力を使う直前にかける軽いサニタイズ。
+// 制御文字(改行・タブ含む)を除去し、連続する空白を1つに圧縮してから前後を
+// trimする。表示時のXSS対策はescapeHtml側で別途行っているため、ここでは
+// あくまで「見た目の崩れ・無駄なAPI呼び出しを防ぐための入力クレンジング」
+function sanitizeInput(str, maxLength) {
+  return String(str)
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
 }
 
 function createUserLocationIcon() {
@@ -400,7 +414,7 @@ function renderLandmarks() {
 const LANDMARK_LIMIT = 20 // 上限に厳密な根拠はないが、無制限は脆弱性になるため上限を設ける
 
 async function addLandmark() {
-  const address = landmarkAddress.value.trim()
+  const address = sanitizeInput(landmarkAddress.value, 140)
   if (!address) return
 
   landmarkError.value = ''
