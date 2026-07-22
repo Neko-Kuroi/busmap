@@ -1041,7 +1041,7 @@ onMounted(async () => {
   try {
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
       attribution: '© 国土地理院',
-      maxZoom: 21,
+      maxZoom: 19,
       opacity: 0.6
     }).addTo(map);
   } catch (e) {
@@ -1059,8 +1059,8 @@ onMounted(async () => {
   try {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      maxZoom: 21,
-      opacity: 0.8
+      maxZoom: 19,
+      opacity: 0.75
     }).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
