@@ -224,7 +224,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#ec4899', weight: 5, opacity: 0.43 } //#f472b6
+    style: { color: '#ec4899', weight: 4, opacity: 0.53 } //#f472b6
   }).addTo(routeLinesLayer)
 }
 
