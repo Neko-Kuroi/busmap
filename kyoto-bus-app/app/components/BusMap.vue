@@ -1026,10 +1026,6 @@ onMounted(async () => {
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
   })
 
-  // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-  //   maxZoom: 21
-  // }).addTo(map)
   
   // try {
   //   L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
@@ -1059,16 +1055,26 @@ onMounted(async () => {
   // } catch (e) {
   //   console.error('❌ Error adding tile layer:', e);
   // }
-
+  
   try {
-    L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
-      attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom: 21,
       opacity: 0.8
-    }).addTo(map);
+    }).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
+  
+  // try {
+  //   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
+  //     attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>',
+  //     maxZoom: 21,
+  //     opacity: 0.8
+  //   }).addTo(map);
+  // } catch (e) {
+  //   console.error('❌ Error adding tile layer:', e);
+  // }
   
   landmarkLayer = L.layerGroup().addTo(map)
   landmarks.value = loadLandmarksFromStorage()
