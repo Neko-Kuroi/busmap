@@ -1627,8 +1627,7 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.25);
-  border: 2px solid rgba(250, 230, 200, 0.55);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8); /* 描画負荷軽減のため無効化 ?
+  border: 2px solid rgba(250, 230, 200, 0.65);
   
   text-align: center;
   font-weight: 700;
