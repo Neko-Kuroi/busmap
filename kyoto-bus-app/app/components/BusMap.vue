@@ -1579,7 +1579,7 @@ onMounted(async () => {
 :deep(.stop-star-icon) svg {
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
 }
 
 :deep(.star-glow-path) {
@@ -1596,7 +1596,7 @@ onMounted(async () => {
   50% {
     stroke-width: 1.6;
     stroke-opacity: 1;
-    filter: drop-shadow(0 0 3px rgba(100, 23, 77, 0.5));
+    filter: drop-shadow(0 0 3px rgba(80, 23, 77, 0.5));
   }
   100% {
     stroke-width: 1.4;
