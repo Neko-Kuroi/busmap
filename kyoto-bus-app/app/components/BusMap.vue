@@ -224,7 +224,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#ec4899', weight: 3.5, opacity: 0.4 } //#f472b6
+    style: { color: '#ec4899', weight: 5, opacity: 0.23 } //#f472b6
   }).addTo(routeLinesLayer)
 }
 
@@ -253,9 +253,13 @@ function starIconHalf(zoom) {
 function createStarIcon(zoom) {
   const half = starIconHalf(zoom)
   const size = half * 2
-  const html = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  // 塗り(fill)はCSSのclip-path(星型の座標をpolygonで再現)でストライプ画像を
+  // 切り抜いて表現し、SVG側はアウトライン(グロー用のstroke)専用にする。
+  // clip-pathのpolygon座標は、下のstar-glow-pathと同じ点をviewBox 24x24から
+  // パーセンテージに変換したもの（両者がズレないよう同じ形状データを共有）
+  const html = `<div class="star-stripe-fill"></div><svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path class="star-glow-path" d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
-      fill="#db2777" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
+      fill="none" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
   </svg>`
   return window.__L.divIcon({
     html,
@@ -1041,7 +1045,7 @@ onMounted(async () => {
   try {
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
       attribution: '© 国土地理院',
-      maxZoom: 19,
+      maxZoom: 21,
       opacity: 0.6
     }).addTo(map);
   } catch (e) {
@@ -1059,8 +1063,8 @@ onMounted(async () => {
   try {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-      opacity: 0.75
+      maxZoom: 21,
+      opacity: 0.8
     }).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -1571,15 +1575,45 @@ onMounted(async () => {
 }
 
 :deep(.stop-star-icon) {
+  position: relative;
   background: transparent;
   border: none;
   overflow: visible;
 }
 
 :deep(.stop-star-icon) svg {
+  position: absolute;
+  inset: 0;
   display: block;
   overflow: visible;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
+  pointer-events: none;
+}
+
+/* 星の塗り部分。star-glow-pathと同じ形状をclip-pathのpolygonで再現し、
+   その中だけにストライプ画像を敷いてスクロールアニメーションさせる */
+:deep(.star-stripe-fill) {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(219, 39, 119, 0.4);
+  background-image: url('/stripe-min2.png');
+  background-repeat: repeat;
+  background-size: 5px 5px;
+  opacity: 0.85;
+  clip-path: polygon(
+    50% 5%, 63.96% 33.29%, 95.21% 37.83%, 72.58% 59.88%, 77.92% 91%,
+    50% 75.08%, 22.08% 91%, 27.42% 59.88%, 4.79% 37.83%, 36.04% 33.29%
+  );
+  animation: stripe-scroll 0.8s linear infinite;
+}
+
+@keyframes stripe-scroll {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -5px -5px;
+  }
 }
 
 :deep(.star-glow-path) {
