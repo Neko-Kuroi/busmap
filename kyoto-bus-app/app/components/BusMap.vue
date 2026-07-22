@@ -1120,6 +1120,7 @@ onMounted(async () => {
     : L.layerGroup()
   highlightLayer = L.layerGroup().addTo(map)
   poiLayer = L.layerGroup().addTo(map)
+  routeLinesLayer = L.layerGroup().addTo(map)
 
   const stopGroupsByCoord = new Map()
   for (const stop of stops) {
