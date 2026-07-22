@@ -224,7 +224,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#ec4899', weight: 5, opacity: 0.23 } //#f472b6
+    style: { color: '#ec4899', weight: 3.5, opacity: 0.4 } //#f472b6
   }).addTo(routeLinesLayer)
 }
 
@@ -253,14 +253,18 @@ function starIconHalf(zoom) {
 function createStarIcon(zoom) {
   const half = starIconHalf(zoom)
   const size = half * 2
-  // 塗り(fill)はCSSのclip-path(星型の座標をpolygonで再現)でストライプ画像を
-  // 切り抜いて表現し、SVG側はアウトライン(グロー用のstroke)専用にする。
-  // clip-pathのpolygon座標は、下のstar-glow-pathと同じ点をviewBox 24x24から
-  // パーセンテージに変換したもの（両者がズレないよう同じ形状データを共有）
-  const html = `<div class="star-stripe-fill"></div><svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path class="star-glow-path" d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
-      fill="none" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
-  </svg>`
+  // 塗り(#db2777)はそのまま残し、その上にストライプ画像を星型にclip-pathで
+  // 切り抜いて重ねる。position:relativeはLeafletがマーカー自体の絶対配置に
+  // 使っている.stop-star-icon（Leafletのアイコン要素そのもの）には付けず、
+  // 内側に新設した.stop-star-innerというラッパーに付けることで、
+  // マーカー位置がズレる問題を避ける
+  const html = `<div class="stop-star-inner">
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path class="star-glow-path" d="M12 1.2l3.35 6.79 7.5 1.09-5.43 5.29 1.28 7.47L12 18.02l-6.7 3.82 1.28-7.47-5.43-5.29 7.5-1.09L12 1.2z"
+        fill="#db2777" stroke="#f9a8d4" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+    <div class="star-stripe-fill"></div>
+  </div>`
   return window.__L.divIcon({
     html,
     className: 'stop-star-icon',
@@ -1045,7 +1049,7 @@ onMounted(async () => {
   try {
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
       attribution: '© 国土地理院',
-      maxZoom: 21,
+      maxZoom: 19,
       opacity: 0.6
     }).addTo(map);
   } catch (e) {
@@ -1063,8 +1067,8 @@ onMounted(async () => {
   try {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      maxZoom: 21,
-      opacity: 0.8
+      maxZoom: 19,
+      opacity: 0.75
     }).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -1575,31 +1579,36 @@ onMounted(async () => {
 }
 
 :deep(.stop-star-icon) {
-  position: relative;
   background: transparent;
   border: none;
   overflow: visible;
 }
 
+/* position:relativeはここ(内側の新しいラッパー)に付ける。
+   .stop-star-icon自体はLeafletが絶対配置に使っている要素なので、
+   ここにposition:relativeを付けるとマーカーの位置がズレてしまう */
+:deep(.stop-star-inner) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 :deep(.stop-star-icon) svg {
-  position: absolute;
-  inset: 0;
   display: block;
   overflow: visible;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
-  pointer-events: none;
 }
 
-/* 星の塗り部分。star-glow-pathと同じ形状をclip-pathのpolygonで再現し、
-   その中だけにストライプ画像を敷いてスクロールアニメーションさせる */
+/* 星の塗り(#db2777)の上に、ストライプ画像を星型にclip-pathで切り抜いて
+   重ねる。画像は背景を透明化・斜め線だけ半透明の赤にしてあるので、
+   下の塗り色が透けて見える「模様を重ねる」表現になる */
 :deep(.star-stripe-fill) {
   position: absolute;
   inset: 0;
-  background-color: rgba(219, 39, 119, 0.4);
-  background-image: url('/stripe-min2.png');
+  pointer-events: none;
+  background-image: url('/stripe-overlay.png');
   background-repeat: repeat;
   background-size: 5px 5px;
-  opacity: 0.85;
   clip-path: polygon(
     50% 5%, 63.96% 33.29%, 95.21% 37.83%, 72.58% 59.88%, 77.92% 91%,
     50% 75.08%, 22.08% 91%, 27.42% 59.88%, 4.79% 37.83%, 36.04% 33.29%
