@@ -224,7 +224,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#f472b6', weight: 5, opacity: 0.19 }
+    style: { color: '#f472b6', weight: 5, opacity: 0.23 }
   }).addTo(routeLinesLayer)
 }
 
@@ -1842,7 +1842,7 @@ onMounted(async () => {
    ズームボタンの実際の高さが変わった場合はここも調整が必要 */
 .corner-logo {
   position: absolute;
-  opacity: 0.65;
+  opacity: 0.75;
   right: 0px;
   bottom: 120px;
   width: 200px;
