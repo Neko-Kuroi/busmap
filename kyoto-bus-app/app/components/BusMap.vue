@@ -3,7 +3,7 @@
     <div id="map" ref="mapEl"></div>
 
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
-    <img src="/logobus1.jpg" alt="" class="corner-logo" />
+    <img src="/logo.png" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
       <div class="status" v-if="loading">停留所データを読み込み中…</div>
@@ -1845,7 +1845,7 @@ onMounted(async () => {
   opacity: 0.65;
   right: 0px;
   bottom: 120px;
-  width: 270px;
+  width: 200px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
