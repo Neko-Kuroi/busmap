@@ -3,7 +3,7 @@
     <div id="map" ref="mapEl"></div>
 
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
-    <img src="/logo.png" alt="" class="corner-logo" />
+    <img src="/logobus1.jpg" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
       <div class="status" v-if="loading">停留所データを読み込み中…</div>
