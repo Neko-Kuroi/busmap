@@ -714,8 +714,8 @@ function buildLocationExtrasHtml(lat, lng) {
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="200"
-    height="200"
+    width="300"
+    height="300"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
