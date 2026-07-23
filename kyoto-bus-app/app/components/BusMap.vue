@@ -126,6 +126,11 @@ const landmarkPanelOpen = ref(false)
 // 先頭に繰り上がる（ブラウザの閲覧履歴と同じ挙動）。localStorageに永続化する
 const viewHistory = ref([]) // [{coordKey, name, otherCount, lat, lng, lastViewedAt}]
 
+// 地図クリックで座標のみ記録するピン。ランドマークと違いジオコーディングは
+// 行わない（住所フィールドを持たない）。クリック即記録ではなく、ポップアップの
+// 「記録する」ボタンを押した時だけ配列に追加・localStorageに保存する
+const clickedPins = ref([]) // [{id, lat, lng, createdAt}]
+
 let allRoutes = []
 let map = null
 let baseLayer = null
@@ -134,6 +139,10 @@ let landmarkLayer = null
 let poiLayer = null
 let routeLinesLayer = null
 let routeLinesGeojson = null // {type:'FeatureCollection', features:[...]} 全事業者ぶんを保持し、activeOperatorで都度絞り込む
+let pinLayer = null
+// クリックのたびに開く「未記録・下見用」のポップアップ。マーカーには紐付かない
+// L.popup単体で、次のクリック時や記録確定時に閉じる
+let pendingPinPopup = null
 let stopsById = {}
 let markersById = {}
 let highlightMarkersById = {}
@@ -154,6 +163,9 @@ let groupPageByCoord = {}
 const LANDMARK_STORAGE_KEY = 'kyoto-bus-app:landmarks'
 const HISTORY_STORAGE_KEY = 'kyoto-bus-app:viewHistory'
 const HISTORY_LIMIT = 50
+const CLICKED_PIN_STORAGE_KEY = 'kyoto-bus-app:clickedPins'
+const CLICKED_PIN_LIMIT = 20 // ランドマークと同じ考え方：無制限は脆弱性になるため上限を設け、
+                              // 超えたら自動で古いものを消さず追加をブロックする
 
 // 停留所の緯度経度から、重複統合・ページ記憶・履歴で共通して使う座標キーを作る
 function coordKeyOf(lat, lng) {
@@ -343,6 +355,25 @@ function createLandmarkIcon() {
   })
 }
 
+// クリックピン用：ランドマークと同じピン形状だが、色は青系統の明るい色にして
+// 見分けられるようにする（住所ジオコーディングを伴わない、座標のみの記録）
+const CLICKED_PIN_ICON_W = 30
+const CLICKED_PIN_ICON_H = 40
+function createClickedPinIcon() {
+  const html = `<svg width="${CLICKED_PIN_ICON_W}" height="${CLICKED_PIN_ICON_H}" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 0C6.716 0 0 6.716 0 15c0 11.25 15 25 15 25s15-13.75 15-25C30 6.716 23.284 0 15 0z"
+      fill="#0ea5e9" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="15" cy="15" r="5.5" fill="#ffffff"/>
+  </svg>`
+  return window.__L.divIcon({
+    html,
+    className: 'clicked-pin-icon',
+    iconSize: [CLICKED_PIN_ICON_W, CLICKED_PIN_ICON_H],
+    iconAnchor: [CLICKED_PIN_ICON_W / 2, CLICKED_PIN_ICON_H],
+    popupAnchor: [0, -CLICKED_PIN_ICON_H]
+  })
+}
+
 // 周辺POI用：小さい逆三角形の自作SVGアイコン。バス停の丸ドット・星・
 // ランドマークピンのいずれとも被らない青系統・半透明(40%)にして、
 // 最大50個同時に出ても地図が主張しすぎないようにする
@@ -467,7 +498,7 @@ function renderLandmarks() {
   landmarkLayer.clearLayers()
   const L = window.__L
   landmarks.value.forEach((lm, idx) => {
-    const marker = L.marker([lm.lat, lm.lng], { icon: createLandmarkIcon() })
+    const marker = L.marker([lm.lat, lm.lng], { icon: createLandmarkIcon(), bubblingMouseEvents: false })
     marker.bindPopup(buildLandmarkPopupHtml(lm, idx + 1), { maxWidth: 320 })
     marker.addTo(landmarkLayer)
   })
@@ -532,6 +563,125 @@ function removeLandmark(id) {
   landmarks.value = landmarks.value.filter(lm => lm.id !== id)
   saveLandmarksToStorage()
   renderLandmarks()
+}
+
+// まだ記録していない、クリックした地点の「下見用」ポップアップ。
+// ランドマークのポップアップとほぼ同じ内容だが、ジオコーディングを行わない
+// ため住所の行が無い。上限に達している場合は「記録する」ボタンの代わりに
+// 上限メッセージを出す（ボタン自体を無効化するだけだと、なぜ押せないか
+// 伝わらないため）
+function buildPendingPinPopupHtml(lat, lng) {
+  const streetViewHtml = `<div class="landmark-streetview">
+  <iframe
+    src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
+    width="200"
+    height="200"
+    style="border:0;"
+    loading="lazy"
+    allowfullscreen>
+  </iframe>
+</div>`
+  const externalLinksHtml = `
+    <div class="landmark-external-links">
+      <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+      <a href="https://maps.apple.com/?ll=${lat},${lng}&z=19" target="_blank" rel="noopener">📍 Apple Maps</a>
+      <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
+    </div>`
+  const actionHtml = clickedPins.value.length >= CLICKED_PIN_LIMIT
+    ? `<p class="landmark-error">ピンは${CLICKED_PIN_LIMIT}件までです。削除してから追加してください</p>`
+    : `<button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">📌 記録する</button>`
+  return `<div class="landmark-popup">
+    <p class="landmark-popup-title">📍 この地点</p>
+    ${streetViewHtml}
+    ${externalLinksHtml}
+    ${actionHtml}
+  </div>`
+}
+
+// 記録済みピンのポップアップ。ランドマークとほぼ同じだが住所の代わりに
+// 番号のみ表示し、削除ボタンを付ける
+function buildClickedPinPopupHtml(pin, number) {
+  const lat = pin.lat
+  const lng = pin.lng
+  const streetViewHtml = `<div class="landmark-streetview">
+  <iframe
+    src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
+    width="200"
+    height="200"
+    style="border:0;"
+    loading="lazy"
+    allowfullscreen>
+  </iframe>
+</div>`
+  const externalLinksHtml = `
+    <div class="landmark-external-links">
+      <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+      <a href="https://maps.apple.com/?ll=${lat},${lng}&z=19" target="_blank" rel="noopener">📍 Apple Maps</a>
+      <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
+    </div>`
+  return `<div class="landmark-popup">
+    <p class="landmark-popup-title">📍 ピン #${number}</p>
+    ${streetViewHtml}
+    ${externalLinksHtml}
+    <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">このピンを削除</button>
+  </div>`
+}
+
+function loadClickedPinsFromStorage() {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(CLICKED_PIN_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error('ピンの読み込みに失敗したにゃ:', err)
+    return []
+  }
+}
+
+function saveClickedPinsToStorage() {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(CLICKED_PIN_STORAGE_KEY, JSON.stringify(clickedPins.value))
+  } catch (err) {
+    console.error('ピンの保存に失敗したにゃ:', err)
+  }
+}
+
+function renderClickedPins() {
+  if (!pinLayer) return
+  pinLayer.clearLayers()
+  const L = window.__L
+  clickedPins.value.forEach((pin, idx) => {
+    const marker = L.marker([pin.lat, pin.lng], { icon: createClickedPinIcon(), bubblingMouseEvents: false })
+    marker.bindPopup(buildClickedPinPopupHtml(pin, idx + 1), { maxWidth: 320 })
+    bindHoverPopup(marker)
+    marker.addTo(pinLayer)
+  })
+}
+
+// ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
+// 確定する（クリックした時点ではまだ何も保存していない）
+function addClickedPin(lat, lng) {
+  if (clickedPins.value.length >= CLICKED_PIN_LIMIT) return
+
+  const pin = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    lat,
+    lng,
+    createdAt: Date.now()
+  }
+  clickedPins.value.push(pin)
+  saveClickedPinsToStorage()
+  renderClickedPins()
+
+  if (map) map.closePopup()
+  pendingPinPopup = null
+}
+
+function removeClickedPin(id) {
+  clickedPins.value = clickedPins.value.filter(p => p.id !== id)
+  saveClickedPinsToStorage()
+  renderClickedPins()
 }
 
 function loadHistoryFromStorage() {
@@ -873,7 +1023,8 @@ function renderHighlight(route, anchorStopId) {
       const entry = groupsByCoordKey[coordKey]
 
       marker = L.marker([stop.lat, stop.lng], {
-        icon: createStarIcon(zoom)
+        icon: createStarIcon(zoom),
+        bubblingMouseEvents: false
       })
       const initialPage = groupPageByCoord[coordKey] || 0
       marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 320 })
@@ -1005,6 +1156,16 @@ onMounted(async () => {
       removeLandmark(deleteEl.dataset.id)
       return
     }
+    const pinDeleteEl = e.target.closest('.pin-delete-btn')
+    if (pinDeleteEl) {
+      removeClickedPin(pinDeleteEl.dataset.id)
+      return
+    }
+    const pinRecordEl = e.target.closest('.pin-record-btn')
+    if (pinRecordEl) {
+      addClickedPin(Number(pinRecordEl.dataset.lat), Number(pinRecordEl.dataset.lng))
+      return
+    }
     const pageEl = e.target.closest('.stop-page-link')
     if (pageEl) {
       goToStopPage(pageEl.dataset.coordKey, Number(pageEl.dataset.page))
@@ -1019,6 +1180,21 @@ onMounted(async () => {
     if (operatorEl) {
       onPopupOperatorClick(operatorEl.dataset.operator)
     }
+  })
+
+  // 何もない場所の地図クリック→下見用ポップアップを開く。既存マーカーは
+  // bubblingMouseEvents:falseでここまでバブリングしてこないので、
+  // マーカーの無い場所をクリックした時だけ発火する
+  map.on('click', (e) => {
+    if (pendingPinPopup) {
+      map.closePopup(pendingPinPopup)
+    }
+    const { lat, lng } = e.latlng
+    const L = window.__L
+    pendingPinPopup = L.popup({ maxWidth: 320 })
+      .setLatLng(e.latlng)
+      .setContent(buildPendingPinPopupHtml(lat, lng))
+      .openOn(map)
   })
 
   map.on('zoomend', () => {
@@ -1162,7 +1338,8 @@ onMounted(async () => {
       // 初期表示時からBASE_OPACITYを適用する。これが無いとLeafletの
       // デフォルト(不透明度1.0)のまま描画され、系統選択→解除を一度も
       // していない状態ではBASE_OPACITYの値が一切反映されなかった
-      opacity: BASE_OPACITY
+      opacity: BASE_OPACITY,
+      bubblingMouseEvents: false
     })
 
     const initialPage = groupPageByCoord[coordKey] || 0
