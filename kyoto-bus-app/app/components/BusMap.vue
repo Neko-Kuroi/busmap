@@ -1867,7 +1867,7 @@ onMounted(async () => {
 
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.55);   /* 0.75の数値を下げるほど透明に */
-  backdrop-filter: blur(5px);               /* 任意：すりガラス風にしたい場合 */
+  backdrop-filter: blur(4px);               /* 任意：すりガラス風にしたい場合 */
 }
 
 :deep(.leaflet-popup-tip) {
@@ -1891,9 +1891,9 @@ onMounted(async () => {
    ズームボタンの実際の高さが変わった場合はここも調整が必要 */
 .corner-logo {
   position: absolute;
-  opacity: 0.75;
+  opacity: 0.95;
   right: 0px;
-  bottom: 120px;
+  bottom: 140px;
   width: 200px;
   height: auto;
   z-index: 1000;
