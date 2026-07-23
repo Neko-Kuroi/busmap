@@ -1049,7 +1049,7 @@ onMounted(async () => {
   try {
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
       attribution: '© 国土地理院',
-      maxZoom: 19,
+      maxZoom: 17,
       opacity: 0.6
     }).addTo(map);
   } catch (e) {
