@@ -1613,7 +1613,7 @@ onMounted(async () => {
     50% 5%, 63.96% 33.29%, 95.21% 37.83%, 72.58% 59.88%, 77.92% 91%,
     50% 75.08%, 22.08% 91%, 27.42% 59.88%, 4.79% 37.83%, 36.04% 33.29%
   );
-  animation: stripe-scroll 0.8s linear infinite;
+  animation: stripe-scroll 1.0s linear infinite;
 }
 
 @keyframes stripe-scroll {
@@ -1637,7 +1637,7 @@ onMounted(async () => {
     filter: drop-shadow(0 0 1px rgba(157, 23, 77, 0.45));
   }
   50% {
-    stroke-width: 1.6;
+    stroke-width: 1.9;
     stroke-opacity: 1;
     filter: drop-shadow(0 0 3px rgba(80, 23, 77, 0.5));
   }
