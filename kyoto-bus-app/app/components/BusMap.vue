@@ -451,8 +451,8 @@ function buildLandmarkPopupHtml(landmark, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="200"
-    height="200"
+    width="300"
+    height="300"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -461,8 +461,10 @@ function buildLandmarkPopupHtml(landmark, number) {
   const externalLinksHtml = `
     <div class="landmark-external-links">
       <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}&heading=180&pitch=0&fov=80" target="_blank" rel="noopener">📍 Street View</a>
+      <a href="https://earth.google.com/web/@${lat},${lng},0a,1000d" target="_blank" rel="noopener">📍 Google Earth</a>
       <a href="https://maps.apple.com/?ll=${lat},${lng}&z=19" target="_blank" rel="noopener">📍 Apple Maps</a>
       <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
+      <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
   return `<div class="landmark-popup">
     <p class="landmark-popup-title">📍 ランドマーク #${number}</p>
