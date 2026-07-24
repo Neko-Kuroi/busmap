@@ -1229,7 +1229,7 @@ onMounted(async () => {
     
       attribution: '© Google',
       maxZoom: 21,
-      opacity: 0.7
+      opacity: 0.6
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
@@ -1258,7 +1258,7 @@ onMounted(async () => {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom: 21,
-      opacity: 0.8
+      opacity: 0.85
     }).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
