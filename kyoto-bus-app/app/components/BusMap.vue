@@ -15,7 +15,7 @@
           class="search"
           type="text"
           v-model="query"
-          maxlength="50"
+          maxlength="100"
           placeholder="系統名・事業者名・停留所名で検索"
         />
 
@@ -149,6 +149,10 @@ let highlightMarkersById = {}
 let hiddenMarkerIds = []
 let dataBounds = null
 let userMarker = null
+// 現在ポップアップが開いている停留所の座標キー（開いていなければnull）。
+// ポップアップ表示中に系統を選び直した際、ズーム・中心を変えずに
+// その停留所を見失わないためのアンカー自動検出に使う
+let popupOpenCoordKey = null
 
 // 座標(coordKey)ごとの重複統合グループ情報。{ stops: [...], baseMarker, starMarker }
 // 黄色ドット・星どちらのグループポップアップもここを参照して同じstops配列を使う
@@ -172,15 +176,50 @@ function coordKeyOf(lat, lng) {
   return `${lat.toFixed(6)},${lng.toFixed(6)}`
 }
 
+// routeが指定座標(coordKey)の停留所を通るなら、そのstop idを返す。
+// ポップアップ表示中に系統を切り替えた際、元の停留所を見失わないための
+// 自動アンカー検出に使う
+function findAnchorStopIdAtCoord(route, coordKey) {
+  for (const id of route.stopIds) {
+    const s = stopsById[id]
+    if (s && coordKeyOf(s.lat, s.lng) === coordKey) return id
+  }
+  return null
+}
+
+// 同一座標(coordKey)グループに含まれる停留所名を重複なく集める。
+// 事業者・ページによって「地下鉄」の有無等で名称が異なる場合があるため、
+// OR検索キーワードの元ネタとして使う
+function uniqueStopNamesForCoord(coordKey) {
+  const entry = groupsByCoordKey[coordKey]
+  if (!entry) return []
+  const seen = new Set()
+  const names = []
+  for (const s of entry.stops) {
+    if (!seen.has(s.name)) {
+      seen.add(s.name)
+      names.push(s.name)
+    }
+  }
+  return names
+}
+
 const filteredRoutes = computed(() => {
-  const q = sanitizeInput(query.value, 50)
-  if (!q) return []
+  // OR連結された複数語（例:「烏丸御池 OR 地下鉄烏丸御池」）を50文字制限で
+  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする
+  const raw = sanitizeInput(query.value, 120)
+  if (!raw) return []
+
+  // " OR " で分割し、いずれかの語にマッチすればヒット扱いにする。
+  // 手動入力の通常検索では1語のみになるため、従来の単純一致と同じ挙動になる
+  const terms = raw.split(' OR ').map(t => t.trim()).filter(Boolean)
+  const matchesQuery = (str) => !!str && terms.some(t => str.includes(t))
 
   const seenKeys = new Set()
   const result = []
 
   for (const r of allRoutes) {
-    if (r.route.includes(q) || r.operator.includes(q)) {
+    if (matchesQuery(r.route) || matchesQuery(r.operator)) {
       const key = r.operator + '||' + r.route
       if (!seenKeys.has(key)) {
         seenKeys.add(key)
@@ -192,7 +231,7 @@ const filteredRoutes = computed(() => {
   const matchedStopIds = new Set()
   for (const id in stopsById) {
     const s = stopsById[id]
-    if (s.name.includes(q) || (s.kana && s.kana.includes(q))) {
+    if (matchesQuery(s.name) || (s.kana && matchesQuery(s.kana))) {
       matchedStopIds.add(s.id)
     }
   }
@@ -864,12 +903,23 @@ function bindHoverPopup(marker) {
 // 自分自身しかヒットせずユーザーにとって無意味だったため、停留所名にする
 // ことで、同じ停留所を使う事業者・系統が全部リストアップされるようにする。
 // クリックした系統自体の地図上でのハイライト表示（星マーカー）は従来通り
-// その場で行う
+// その場で行う。
+// 同一座標グループに事業者違いで名称の異なる停留所（例:「地下鉄」の有無）が
+// 含まれる場合、クリック元の名称だけでなく他ページの名称も重複を除いて
+// OR連結し、そのどちらの表記でも系統検索にヒットするようにする
 function onPopupRouteClick(operator, route, anchorStopId) {
   const match = allRoutes.find(r => r.operator === operator && r.route === route)
   if (!match) return
   const anchorStop = anchorStopId != null ? stopsById[anchorStopId] : null
-  query.value = anchorStop ? anchorStop.name : route
+
+  if (anchorStop) {
+    const coordKey = coordKeyOf(anchorStop.lat, anchorStop.lng)
+    const names = uniqueStopNamesForCoord(coordKey)
+    query.value = names.length ? names.join(' OR ') : anchorStop.name
+  } else {
+    query.value = route
+  }
+
   selectRoute(match, anchorStopId)
 }
 
@@ -1004,6 +1054,11 @@ const DISABLE_CLUSTERING_AT_ZOOM = 14
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
+
+  // clearLayers()で古い星のポップアップが閉じるとpopupOpenCoordKeyが
+  // 書き換わってしまうため、処理の一番最初に値を退避しておく
+  const currentPopupCoordKey = popupOpenCoordKey
+
   highlightMarkersById = {}
   highlightLayer.clearLayers()
 
@@ -1016,6 +1071,12 @@ function renderHighlight(route, anchorStopId) {
   if (!route) {
     baseLayer.eachLayer(l => l.setOpacity(BASE_OPACITY))
     return
+  }
+
+  // 明示的なanchorStopIdが無くても、ポップアップが開いている最中の
+  // 系統切り替えなら、その停留所を優先アンカーとして自動的に採用する
+  if (anchorStopId == null && currentPopupCoordKey != null) {
+    anchorStopId = findAnchorStopIdAtCoord(route, currentPopupCoordKey)
   }
 
   baseLayer.eachLayer(l => l.setOpacity(DIMMED_OPACITY))
@@ -1094,6 +1155,16 @@ function renderHighlight(route, anchorStopId) {
 
   if (anchorMarker) {
     anchorMarker.openPopup()
+  } else if (currentPopupCoordKey != null) {
+    // ポップアップ表示中に、そのポップアップの停留所を通らない系統へ
+    // 切り替えた場合も、ズーム・中心は変えない。表示継続のため、
+    // 新しい系統に含まれていれば星、含まれていなければ元の黄色ドットの
+    // ポップアップを開き直す
+    const entry = groupsByCoordKey[currentPopupCoordKey]
+    const fallbackMarker =
+      (entry && entry.starMarker && highlightLayer.hasLayer(entry.starMarker) && entry.starMarker) ||
+      (entry && entry.baseMarker)
+    if (fallbackMarker) fallbackMarker.openPopup()
   } else if (bounds.length) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
   }
@@ -1155,12 +1226,20 @@ onMounted(async () => {
     // （ランドマーク・現在地マーカーには_coordKeyが無いので対象外）
     if (marker._coordKey != null) {
       recordHistory(marker._coordKey)
+      popupOpenCoordKey = marker._coordKey
     }
   })
 
   map.on('popupclose', (e) => {
     const marker = e.popup._source
     if (!marker) return
+
+    // このポップアップが「今追跡している座標」のものなら追跡を解除する。
+    // renderHighlight側でcurrentPopupCoordKeyへ退避済みなので、
+    // clearLayers()による一時的なclose発火で処理が壊れることはない
+    if (marker._coordKey != null && marker._coordKey === popupOpenCoordKey) {
+      popupOpenCoordKey = null
+    }
 
     // 停留所（黄色ドット・星どちらも）のポップアップが閉じたら、
     // クリックで表示していたPOIマーカーも一緒に消す
