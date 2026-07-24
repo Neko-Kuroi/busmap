@@ -1224,26 +1224,27 @@ onMounted(async () => {
   })
 
   
-  // try {
-  //   L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
-    
-  //     attribution: '© Google',
-  //     maxZoom: 21,
-  //     opacity: 0.5
-  //   }).addTo(map);
-  // } catch (e) {
-  //   console.error('❌ Error adding tile layer:', e);
-  // }
-  
   try {
-    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-      attribution: '© 国土地理院',
-      maxZoom: 17,
+    L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
+    
+      attribution: '© Google',
+      maxZoom: 21,
       opacity: 0.7
     }).addTo(map);
   } catch (e) {
     console.error('❌ Error adding tile layer:', e);
   }
+  
+  // try {
+  //   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+  //     attribution: '© 国土地理院',
+  //     maxZoom: 17,
+  //     opacity: 0.7
+  //   }).addTo(map);
+  // } catch (e) {
+  //   console.error('❌ Error adding tile layer:', e);
+  // }
+  
   // try {
   //   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
   //     maxZoom: 21,
