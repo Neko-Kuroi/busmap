@@ -1855,7 +1855,7 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: #eaff00;
-  border: 2px solid #fff; /*#d4e100;*/
+  border: 3px solid #fff; /*#d4e100;*/
   /* box-shadow: 0 0 3px rgba(0, 0, 0, 0.6); */ /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
 }
 
