@@ -610,8 +610,8 @@ function buildClickedPinPopupHtml(pin, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="200"
-    height="200"
+    width="300"
+    height="300"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -1269,6 +1269,13 @@ onMounted(async () => {
   landmarkLayer = L.layerGroup().addTo(map)
   landmarks.value = loadLandmarksFromStorage()
   renderLandmarks()
+
+  // pinLayerが未初期化のままだとrenderClickedPins()が毎回何もせず早期returnし、
+  // 「記録する」ボタンを押してもclickedPins配列・localStorageへの保存は
+  // 正常に行われるのに、地図上にピンが一切表示されない不具合になっていた
+  pinLayer = L.layerGroup().addTo(map)
+  clickedPins.value = loadClickedPinsFromStorage()
+  renderClickedPins()
 
   viewHistory.value = loadHistoryFromStorage()
 
