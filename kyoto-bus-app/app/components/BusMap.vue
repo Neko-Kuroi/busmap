@@ -994,8 +994,8 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.45
-const DIMMED_OPACITY = 0.55
+const BASE_OPACITY = 0.65
+const DIMMED_OPACITY = 0.35
 
 // markerClusterGroupのdisableClusteringAtZoomと、zoomendハンドラでの
 // アイコン更新ループの両方から参照する共有定数。2箇所に同じ値を別々に
