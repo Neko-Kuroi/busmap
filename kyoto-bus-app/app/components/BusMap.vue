@@ -1836,7 +1836,7 @@ onMounted(async () => {
   50% {
     stroke-width: 1.9;
     stroke-opacity: 1;
-    filter: drop-shadow(0 0 3px rgba(80, 23, 77, 0.5));
+    filter: drop-shadow(0 0 3px rgba(80, 23, 77, 0.7));
   }
   100% {
     stroke-width: 1.4;
@@ -1867,7 +1867,7 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.25);
-  border: 2px solid rgba(250, 230, 200, 0.65);
+  border: 1px solid rgba(250, 230, 200, 0.65);
   
   text-align: center;
   font-weight: 700;
