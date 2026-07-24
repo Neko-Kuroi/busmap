@@ -1772,7 +1772,7 @@ onMounted(async () => {
   font-size: 12px;
   font-family: inherit;
   resize: vertical;
-  min-height: 3em;
+  min-height: 6em;
 }
 
 /* 6行(line-height 1.5em × 6 = 9em)を超えたら縦スクロールにする */
@@ -1791,7 +1791,10 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-:deep(.landmark-delete-btn) {
+:deep(.landmark-delete-btn),
+:deep(.pin-delete-btn) {
+  display: block;
+  margin-left: auto;
   border: none;
   background: #dc2626;
   color: white;
@@ -1799,6 +1802,13 @@ onMounted(async () => {
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+/* 「記録する」ボタンを右寄せにし、メモ欄の下部とのマージンを設ける */
+:deep(.pin-record-btn) {
+  display: block;
+  margin-left: auto;
+  margin-top: 10px;
 }
 
 :deep(.landmark-streetview) {
@@ -1824,7 +1834,8 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-:deep(.landmark-delete-btn:hover) {
+:deep(.landmark-delete-btn:hover),
+:deep(.pin-delete-btn:hover) {
   background: #b91c1c;
 }
 
