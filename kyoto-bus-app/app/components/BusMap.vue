@@ -6,17 +6,47 @@
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
-      <div class="status" v-if="loading">停留所データを読み込み中…</div>
+      <div class="lang-controls">
+        <button
+          class="lang-toggle-btn"
+          type="button"
+          :title="t('langToggleTitle')"
+          @click="toggleLocale"
+        >
+          🌐 {{ t('langToggleLabel') }}
+        </button>
+
+        <!-- 地図タイルの英語ラベル化・比較検証用（本採用が決まったら撤去予定） -->
+        <div class="tile-compare-switcher" title="地図タイルラベルの比較（検証用）">
+          <button
+            type="button"
+            :class="{ active: labelLayerKind === 'osm-ja' }"
+            @click="setLabelLayer('osm-ja')"
+          >OSM(JA)</button>
+          <button
+            type="button"
+            :class="{ active: labelLayerKind === 'google-en' }"
+            @click="setLabelLayer('google-en')"
+          >Google(EN)</button>
+          <button
+            type="button"
+            :class="{ active: labelLayerKind === 'wikimedia-en' }"
+            @click="setLabelLayer('wikimedia-en')"
+          >Wikimedia(EN)</button>
+        </div>
+      </div>
+
+      <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
       <div class="panel" v-else>
-        <div class="count">{{ stopCount.toLocaleString() }} 件の停留所（{{ routeCount.toLocaleString() }} 系統）</div>
+        <div class="count">{{ t('stopCount', { stops: stopCount.toLocaleString(), routes: routeCount.toLocaleString() }) }}</div>
 
         <input
           class="search"
           type="text"
           v-model="query"
-          maxlength="100"
-          placeholder="系統名・事業者名・停留所名で検索"
+          maxlength="50"
+          :placeholder="t('searchPlaceholder')"
         />
 
         <button
@@ -25,9 +55,9 @@
           @click="locateUser"
           :disabled="locating"
         >
-          📍 {{ locating ? '取得中…' : '現在地を表示' }}
+          📍 {{ locating ? t('locating') : t('showMyLocation') }}
         </button>
-        <p class="geo-unsupported" v-else>このブラウザ・接続方法では現在地取得は使えません</p>
+        <p class="geo-unsupported" v-else>{{ t('geoUnsupported') }}</p>
         <p class="geo-error" v-if="geoError">{{ geoError }}</p>
 
         <div class="route-list" v-if="query">
@@ -39,24 +69,24 @@
             @click="selectRoute(r)"
           >
             <span class="route-name">{{ r.route }}</span>
-            <span class="route-operator">{{ r.operator }}（{{ r.count }}件）</span>
+            <span class="route-operator">{{ t('routeOperatorCount', { operator: r.operator, count: r.count }) }}</span>
             <span class="route-matched-stop" v-if="r.matchedStopNames.length">
-              🚏 {{ r.matchedStopNames.join('、') }}
+              {{ t('matchedStopPrefix', { names: r.matchedStopNames.join('、') }) }}
             </span>
           </button>
-          <p class="no-hit" v-if="filteredRoutes.length === 0">該当する系統・停留所がありません</p>
+          <p class="no-hit" v-if="filteredRoutes.length === 0">{{ t('noMatch') }}</p>
         </div>
 
         <div class="selected" v-if="selectedRoute">
-          <span>選択中: <strong>{{ selectedRoute.route }}</strong>（{{ selectedRoute.operator }}）</span>
-          <button class="clear" @click="clearSelection">解除</button>
+          <span>{{ t('selectedRoute', { route: selectedRoute.route, operator: selectedRoute.operator }) }}</span>
+          <button class="clear" @click="clearSelection">{{ t('clearSelection') }}</button>
         </div>
       </div>
 
       <div class="right-stack">
         <div class="landmark-panel">
           <button class="landmark-header" @click="landmarkPanelOpen = !landmarkPanelOpen">
-            📍 ランドマークを追加
+            {{ t('addLandmarkTitle') }}
             <span class="landmark-toggle-arrow">{{ landmarkPanelOpen ? '▲' : '▼' }}</span>
           </button>
           <template v-if="landmarkPanelOpen">
@@ -66,7 +96,7 @@
                 type="text"
                 v-model="landmarkAddress"
                 maxlength="140"
-                placeholder="住所を入力"
+                :placeholder="t('addressPlaceholder')"
                 :disabled="geocoding"
               />
               <button
@@ -74,16 +104,16 @@
                 type="submit"
                 :disabled="geocoding || !landmarkAddress.trim()"
               >
-                {{ geocoding ? '検索中…' : '追加' }}
+                {{ geocoding ? t('searching') : t('add') }}
               </button>
             </form>
             <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
-            <p class="landmark-count" v-if="landmarks.length">{{ landmarks.length }} / {{ LANDMARK_LIMIT }} 件登録中</p>
+            <p class="landmark-count" v-if="landmarks.length">{{ t('landmarkCount', { count: landmarks.length, limit: LANDMARK_LIMIT }) }}</p>
           </template>
         </div>
 
         <div class="history-panel" v-if="viewHistory.length">
-          <div class="history-header">🕘 最近見た停留所</div>
+          <div class="history-header">{{ t('recentlyViewed') }}</div>
           <div class="history-list">
             <button
               v-for="h in viewHistory"
@@ -92,7 +122,7 @@
               @click="goToHistoryEntry(h)"
             >
               <span class="history-name">{{ h.name }}</span>
-              <span class="history-other" v-if="h.otherCount">他{{ h.otherCount }}件</span>
+              <span class="history-other" v-if="h.otherCount">{{ t('moreCount', { count: h.otherCount }) }}</span>
             </button>
           </div>
         </div>
@@ -104,6 +134,57 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { normalize } from '@geolonia/normalize-japanese-addresses'
+import { useI18n } from '../composables/useI18n'
+
+const { locale, t, toggleLocale } = useI18n()
+
+// 地図タイルの英語ラベル化・比較検証用（本採用が決まったら固定化・簡略化する予定）
+const labelLayerKind = ref('osm-ja') // 'osm-ja' | 'google-en' | 'wikimedia-en'
+let currentLabelLayer = null
+const LABEL_LAYER_CONFIGS = {
+  'osm-ja': {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+      maxZoom: 21,
+      opacity: 0.85
+    }
+  },
+  // Google非公式タイル。hl=enでラベル言語を英語化。lyrs=hは道路・地名ラベルのみの透過レイヤー
+  'google-en': {
+    url: 'https://mt1.google.com/vt/lyrs=h&hl=en&x={x}&y={y}&z={z}',
+    options: {
+      attribution: '© Google',
+      maxZoom: 21,
+      opacity: 0.85
+    }
+  },
+  // Wikimedia提供のOSMベースタイル。?lang=enでラベル言語を指定（無ければ現地語にフォールバック）
+  'wikimedia-en': {
+    url: 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png?lang=en',
+    options: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, style by Wikimedia',
+      maxZoom: 19,
+      opacity: 0.85
+    }
+  }
+}
+
+function setLabelLayer(kind) {
+  const L = window.__L
+  if (!L || !map) return
+  const config = LABEL_LAYER_CONFIGS[kind] || LABEL_LAYER_CONFIGS['osm-ja']
+  if (currentLabelLayer) {
+    map.removeLayer(currentLabelLayer)
+    currentLabelLayer = null
+  }
+  try {
+    currentLabelLayer = L.tileLayer(config.url, config.options).addTo(map)
+  } catch (e) {
+    console.error('❌ Error adding tile layer:', e)
+  }
+  labelLayerKind.value = kind
+}
 
 const mapEl = ref(null)
 const loading = ref(true)
@@ -149,10 +230,6 @@ let highlightMarkersById = {}
 let hiddenMarkerIds = []
 let dataBounds = null
 let userMarker = null
-// 現在ポップアップが開いている停留所の座標キー（開いていなければnull）。
-// ポップアップ表示中に系統を選び直した際、ズーム・中心を変えずに
-// その停留所を見失わないためのアンカー自動検出に使う
-let popupOpenCoordKey = null
 
 // 座標(coordKey)ごとの重複統合グループ情報。{ stops: [...], baseMarker, starMarker }
 // 黄色ドット・星どちらのグループポップアップもここを参照して同じstops配列を使う
@@ -176,50 +253,15 @@ function coordKeyOf(lat, lng) {
   return `${lat.toFixed(6)},${lng.toFixed(6)}`
 }
 
-// routeが指定座標(coordKey)の停留所を通るなら、そのstop idを返す。
-// ポップアップ表示中に系統を切り替えた際、元の停留所を見失わないための
-// 自動アンカー検出に使う
-function findAnchorStopIdAtCoord(route, coordKey) {
-  for (const id of route.stopIds) {
-    const s = stopsById[id]
-    if (s && coordKeyOf(s.lat, s.lng) === coordKey) return id
-  }
-  return null
-}
-
-// 同一座標(coordKey)グループに含まれる停留所名を重複なく集める。
-// 事業者・ページによって「地下鉄」の有無等で名称が異なる場合があるため、
-// OR検索キーワードの元ネタとして使う
-function uniqueStopNamesForCoord(coordKey) {
-  const entry = groupsByCoordKey[coordKey]
-  if (!entry) return []
-  const seen = new Set()
-  const names = []
-  for (const s of entry.stops) {
-    if (!seen.has(s.name)) {
-      seen.add(s.name)
-      names.push(s.name)
-    }
-  }
-  return names
-}
-
 const filteredRoutes = computed(() => {
-  // OR連結された複数語（例:「烏丸御池 OR 地下鉄烏丸御池」）を50文字制限で
-  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする
-  const raw = sanitizeInput(query.value, 120)
-  if (!raw) return []
-
-  // " OR " で分割し、いずれかの語にマッチすればヒット扱いにする。
-  // 手動入力の通常検索では1語のみになるため、従来の単純一致と同じ挙動になる
-  const terms = raw.split(' OR ').map(t => t.trim()).filter(Boolean)
-  const matchesQuery = (str) => !!str && terms.some(t => str.includes(t))
+  const q = sanitizeInput(query.value, 50)
+  if (!q) return []
 
   const seenKeys = new Set()
   const result = []
 
   for (const r of allRoutes) {
-    if (matchesQuery(r.route) || matchesQuery(r.operator)) {
+    if (r.route.includes(q) || r.operator.includes(q)) {
       const key = r.operator + '||' + r.route
       if (!seenKeys.has(key)) {
         seenKeys.add(key)
@@ -231,7 +273,7 @@ const filteredRoutes = computed(() => {
   const matchedStopIds = new Set()
   for (const id in stopsById) {
     const s = stopsById[id]
-    if (matchesQuery(s.name) || (s.kana && matchesQuery(s.kana))) {
+    if (s.name.includes(q) || (s.kana && s.kana.includes(q))) {
       matchedStopIds.add(s.id)
     }
   }
@@ -517,11 +559,11 @@ function buildLandmarkPopupHtml(landmark, number) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
   return `<div class="landmark-popup">
-    <p class="landmark-popup-title">📍 ランドマーク #${number}</p>
+    <p class="landmark-popup-title">${escapeHtml(t('landmarkPopupTitle', { number }))}</p>
     <p class="landmark-popup-address">${escapeHtml(landmark.address)}</p>
     ${streetViewHtml}
     ${externalLinksHtml}
-    <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">このランドマークを削除</button>
+    <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">${escapeHtml(t('deleteThisLandmark'))}</button>
   </div>`
 }
 
@@ -531,7 +573,7 @@ function loadLandmarksFromStorage() {
     const raw = localStorage.getItem(LANDMARK_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch (err) {
-    console.error('ランドマークの読み込みに失敗したにゃ:', err)
+    console.error(t('landmarkLoadFail'), err)
     return []
   }
 }
@@ -541,7 +583,7 @@ function saveLandmarksToStorage() {
   try {
     localStorage.setItem(LANDMARK_STORAGE_KEY, JSON.stringify(landmarks.value))
   } catch (err) {
-    console.error('ランドマークの保存に失敗したにゃ:', err)
+    console.error(t('landmarkSaveFail'), err)
   }
 }
 
@@ -569,7 +611,7 @@ async function addLandmark() {
   // 知らないユーザーが前に登録したランドマークが突然消えて驚くことになるため、
   // 追加をブロックして「削除してから追加してください」と促す方式にする
   if (landmarks.value.length >= LANDMARK_LIMIT) {
-    landmarkError.value = `ランドマークは${LANDMARK_LIMIT}件までです。削除してから追加してください`
+    landmarkError.value = t('landmarkLimit', { limit: LANDMARK_LIMIT })
     return
   }
 
@@ -577,15 +619,17 @@ async function addLandmark() {
   try {
     const result = await normalize(address, { level: 5 })
     if (!result || !result.point) {
-      landmarkError.value = '座標を特定できませんでした。住所を見直してください'
+      landmarkError.value = t('geocodeNoCoords')
       return
     }
 
     // このアプリは京都エリアのバス停を対象にしているため、ジオコーディング
     // 結果の都道府県が京都府でない場合は入り口で弾く。pref自体が取れない
     // （通り名住所などで正規化レベルが足りず特定できない）場合も安全側で弾く
+    // ジオコーディングAPI(@geolonia/normalize-japanese-addresses)は表示言語に関わらず
+    // 常に日本語の都道府県名を返すため、ここは翻訳せず固定の日本語文字列と比較する
     if (result.pref !== '京都府') {
-      landmarkError.value = '京都府内の住所のみ登録できます'
+      landmarkError.value = t('kyotoOnly')
       return
     }
 
@@ -604,8 +648,8 @@ async function addLandmark() {
 
     if (map) map.setView([landmark.lat, landmark.lng], Math.max(map.getZoom(), 16))
   } catch (err) {
-    console.error('ジオコーディングに失敗したにゃ:', err)
-    landmarkError.value = '住所の変換に失敗しました。しばらくして再度お試しください'
+    console.error(t('geocodeFail'), err)
+    landmarkError.value = t('addressConvertFail')
   } finally {
     geocoding.value = false
   }
@@ -642,11 +686,11 @@ function buildPendingPinPopupHtml(lat, lng) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
   const actionHtml = clickedPins.value.length >= CLICKED_PIN_LIMIT
-    ? `<p class="landmark-error">ピンは${CLICKED_PIN_LIMIT}件までです。削除してから追加してください</p>`
-    : `<textarea class="pin-memo-input" maxlength="300" placeholder="メモ（300文字まで）"></textarea>
-       <button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">📌 記録する</button>`
+    ? `<p class="landmark-error">${escapeHtml(t('pinLimit', { limit: CLICKED_PIN_LIMIT }))}</p>`
+    : `<textarea class="pin-memo-input" maxlength="300" placeholder="${escapeHtml(t('memoPlaceholder'))}"></textarea>
+       <button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">${escapeHtml(t('saveBtn'))}</button>`
   return `<div class="landmark-popup">
-    <p class="landmark-popup-title">📍 この地点</p>
+    <p class="landmark-popup-title">${escapeHtml(t('thisLocation'))}</p>
     ${streetViewHtml}
     ${externalLinksHtml}
     ${actionHtml}
@@ -683,11 +727,11 @@ function buildClickedPinPopupHtml(pin, number) {
     ? `<div class="pin-memo-display">${escapeHtml(pin.memo)}</div>`
     : ''
   return `<div class="landmark-popup">
-    <p class="landmark-popup-title">📍 ピン #${number}</p>
+    <p class="landmark-popup-title">${escapeHtml(t('pinPopupTitle', { number }))}</p>
     ${memoHtml}
     ${streetViewHtml}
     ${externalLinksHtml}
-    <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">このピンを削除</button>
+    <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">${escapeHtml(t('deleteThisPin'))}</button>
   </div>`
 }
 
@@ -697,7 +741,7 @@ function loadClickedPinsFromStorage() {
     const raw = localStorage.getItem(CLICKED_PIN_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch (err) {
-    console.error('ピンの読み込みに失敗したにゃ:', err)
+    console.error(t('pinLoadFail'), err)
     return []
   }
 }
@@ -707,7 +751,7 @@ function saveClickedPinsToStorage() {
   try {
     localStorage.setItem(CLICKED_PIN_STORAGE_KEY, JSON.stringify(clickedPins.value))
   } catch (err) {
-    console.error('ピンの保存に失敗したにゃ:', err)
+    console.error(t('pinSaveFail'), err)
   }
 }
 
@@ -755,7 +799,7 @@ function loadHistoryFromStorage() {
     const raw = localStorage.getItem(HISTORY_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch (err) {
-    console.error('履歴の読み込みに失敗したにゃ:', err)
+    console.error(t('historyLoadFail'), err)
     return []
   }
 }
@@ -765,7 +809,7 @@ function saveHistoryToStorage() {
   try {
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(viewHistory.value))
   } catch (err) {
-    console.error('履歴の保存に失敗したにゃ:', err)
+    console.error(t('historySaveFail'), err)
   }
 }
 
@@ -828,11 +872,11 @@ function locateUser() {
   geoError.value = ''
 
   if (!navigator.geolocation) {
-    geoError.value = 'このブラウザでは現在地取得に対応していません'
+    geoError.value = t('geoNotSupported')
     return
   }
   if (!dataBounds) {
-    geoError.value = '停留所データの読み込みが完了していません'
+    geoError.value = t('stopsNotReady')
     return
   }
 
@@ -842,7 +886,7 @@ function locateUser() {
       locating.value = false
       const { latitude, longitude } = position.coords
       if (!dataBounds.contains([latitude, longitude])) {
-        geoError.value = '現在地が京都のバス停エリア外のため表示できません'
+        geoError.value = t('outsideKyoto')
         return
       }
       const L = window.__L
@@ -851,21 +895,21 @@ function locateUser() {
         icon: createUserLocationIcon(),
         zIndexOffset: 1000
       }).addTo(map)
-      userMarker.bindPopup('現在地')
+      userMarker.bindPopup(t('myLocation'))
       map.setView([latitude, longitude], 15)
     },
     (error) => {
       locating.value = false
       if (error.code === 1) {
-        geoError.value = '位置情報の利用が許可されませんでした'
+        geoError.value = t('geoPermissionDenied')
       } else if (error.code === 2) {
-        geoError.value = '現在地を取得できませんでした'
+        geoError.value = t('geoUnavailable')
       } else if (error.code === 3) {
-        geoError.value = '現在地の取得がタイムアウトしました'
+        geoError.value = t('geoTimeout')
       } else {
-        geoError.value = '現在地の取得に失敗しました'
+        geoError.value = t('geoFail')
       }
-      console.error('位置情報の取得に失敗したにゃ:', error)
+      console.error(t('geoFailLog'), error)
     },
     { enableHighAccuracy: true, timeout: 10000 }
   )
@@ -903,23 +947,12 @@ function bindHoverPopup(marker) {
 // 自分自身しかヒットせずユーザーにとって無意味だったため、停留所名にする
 // ことで、同じ停留所を使う事業者・系統が全部リストアップされるようにする。
 // クリックした系統自体の地図上でのハイライト表示（星マーカー）は従来通り
-// その場で行う。
-// 同一座標グループに事業者違いで名称の異なる停留所（例:「地下鉄」の有無）が
-// 含まれる場合、クリック元の名称だけでなく他ページの名称も重複を除いて
-// OR連結し、そのどちらの表記でも系統検索にヒットするようにする
+// その場で行う
 function onPopupRouteClick(operator, route, anchorStopId) {
   const match = allRoutes.find(r => r.operator === operator && r.route === route)
   if (!match) return
   const anchorStop = anchorStopId != null ? stopsById[anchorStopId] : null
-
-  if (anchorStop) {
-    const coordKey = coordKeyOf(anchorStop.lat, anchorStop.lng)
-    const names = uniqueStopNamesForCoord(coordKey)
-    query.value = names.length ? names.join(' OR ') : anchorStop.name
-  } else {
-    query.value = route
-  }
-
+  query.value = anchorStop ? anchorStop.name : route
   selectRoute(match, anchorStopId)
 }
 
@@ -934,7 +967,7 @@ function buildStopSubLabel(stop) {
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
         .join('<br>')
-    : '（系統情報なし）'
+    : t('noRouteInfo')
   // 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
   // 系統一覧だけを独立したブロック(stop-routes-scroll)にして、5行を超えたら
   // その部分だけ縦スクロールにする（停留所名・かな等は伸びず固定のまま）
@@ -946,7 +979,7 @@ function buildStopSubLabel(stop) {
 function buildMiniStopLabel(stop, groupSize) {
   const kanaHtml = stop.kana ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
   const otherHtml = groupSize && groupSize > 1
-    ? `<br><span class="stop-mini-other">他${groupSize - 1}件</span>`
+    ? `<br><span class="stop-mini-other">${escapeHtml(t('moreCount', { count: groupSize - 1 }))}</span>`
     : ''
   return `<span class="stop-mini-name">${escapeHtml(stop.name)}</span>${kanaHtml}${otherHtml}`
 }
@@ -980,7 +1013,7 @@ function buildPopupHtml(stop, subLabel) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = subLabel ? `<div class="stop-sub">${subLabel}</div>` : ''
   const linkHtml = stop.url
-    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
+    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
     : ''
 
   const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
@@ -1017,7 +1050,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = `<div class="stop-sub">${buildStopSubLabel(stop)}</div>`
   const linkHtml = stop.url
-    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">🕒 時刻表を見る</a></p>`
+    ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
     : ''
 
   const pagerLinksHtml = stopGroup
@@ -1028,7 +1061,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
     .join('')
 
   const pagerHtml = `<div class="stop-pager">
-    <span class="stop-pager-label">${page + 1} / ${total}件（事業者・系統違い）</span>
+    <span class="stop-pager-label">${escapeHtml(t('stopPager', { page: page + 1, total }))}</span>
     <div class="stop-pager-links">${pagerLinksHtml}</div>
   </div>`
 
@@ -1044,8 +1077,8 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.65
-const DIMMED_OPACITY = 0.35
+const BASE_OPACITY = 0.45
+const DIMMED_OPACITY = 0.55
 
 // markerClusterGroupのdisableClusteringAtZoomと、zoomendハンドラでの
 // アイコン更新ループの両方から参照する共有定数。2箇所に同じ値を別々に
@@ -1054,11 +1087,6 @@ const DISABLE_CLUSTERING_AT_ZOOM = 14
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
-
-  // clearLayers()で古い星のポップアップが閉じるとpopupOpenCoordKeyが
-  // 書き換わってしまうため、処理の一番最初に値を退避しておく
-  const currentPopupCoordKey = popupOpenCoordKey
-
   highlightMarkersById = {}
   highlightLayer.clearLayers()
 
@@ -1071,12 +1099,6 @@ function renderHighlight(route, anchorStopId) {
   if (!route) {
     baseLayer.eachLayer(l => l.setOpacity(BASE_OPACITY))
     return
-  }
-
-  // 明示的なanchorStopIdが無くても、ポップアップが開いている最中の
-  // 系統切り替えなら、その停留所を優先アンカーとして自動的に採用する
-  if (anchorStopId == null && currentPopupCoordKey != null) {
-    anchorStopId = findAnchorStopIdAtCoord(route, currentPopupCoordKey)
   }
 
   baseLayer.eachLayer(l => l.setOpacity(DIMMED_OPACITY))
@@ -1155,16 +1177,6 @@ function renderHighlight(route, anchorStopId) {
 
   if (anchorMarker) {
     anchorMarker.openPopup()
-  } else if (currentPopupCoordKey != null) {
-    // ポップアップ表示中に、そのポップアップの停留所を通らない系統へ
-    // 切り替えた場合も、ズーム・中心は変えない。表示継続のため、
-    // 新しい系統に含まれていれば星、含まれていなければ元の黄色ドットの
-    // ポップアップを開き直す
-    const entry = groupsByCoordKey[currentPopupCoordKey]
-    const fallbackMarker =
-      (entry && entry.starMarker && highlightLayer.hasLayer(entry.starMarker) && entry.starMarker) ||
-      (entry && entry.baseMarker)
-    if (fallbackMarker) fallbackMarker.openPopup()
   } else if (bounds.length) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
   }
@@ -1197,7 +1209,7 @@ onMounted(async () => {
     await import('leaflet.markercluster')
   } catch (err) {
     clusteringAvailable = false
-    console.error('leaflet.markercluster の読み込みに失敗したにゃ。クラスタリングなしで表示するにゃ:', err)
+    console.error(t('clusterLoadFail'), err)
   }
 
   map = L.map(mapEl.value, {
@@ -1226,20 +1238,12 @@ onMounted(async () => {
     // （ランドマーク・現在地マーカーには_coordKeyが無いので対象外）
     if (marker._coordKey != null) {
       recordHistory(marker._coordKey)
-      popupOpenCoordKey = marker._coordKey
     }
   })
 
   map.on('popupclose', (e) => {
     const marker = e.popup._source
     if (!marker) return
-
-    // このポップアップが「今追跡している座標」のものなら追跡を解除する。
-    // renderHighlight側でcurrentPopupCoordKeyへ退避済みなので、
-    // clearLayers()による一時的なclose発火で処理が壊れることはない
-    if (marker._coordKey != null && marker._coordKey === popupOpenCoordKey) {
-      popupOpenCoordKey = null
-    }
 
     // 停留所（黄色ドット・星どちらも）のポップアップが閉じたら、
     // クリックで表示していたPOIマーカーも一緒に消す
@@ -1355,15 +1359,9 @@ onMounted(async () => {
   //   console.error('❌ Error adding tile layer:', e);
   // }
   
-  try {
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      maxZoom: 21,
-      opacity: 0.85
-    }).addTo(map)
-  } catch (e) {
-    console.error('❌ Error adding tile layer:', e);
-  }
+  // ラベルレイヤー（OSM/Google英語/Wikimedia英語の比較検証用）。
+  // 既定はosm-ja（従来通りの見た目）で、UIのスイッチャーから切り替え可能
+  setLabelLayer(labelLayerKind.value)
   
   // try {
   //   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
@@ -1524,6 +1522,52 @@ onMounted(async () => {
   border-radius: 6px;
   font-size: 13px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.lang-controls {
+  order: 99;
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.lang-toggle-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.lang-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* 地図タイルラベルの比較検証用UI。本採用の方式が決まったら削除予定 */
+.tile-compare-switcher {
+  display: flex;
+  gap: 4px;
+}
+
+.tile-compare-switcher button {
+  border: none;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tile-compare-switcher button.active {
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
 }
 
 .panel {
