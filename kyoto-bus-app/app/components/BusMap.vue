@@ -839,10 +839,17 @@ function bindHoverPopup(marker) {
   })
 }
 
+// ポップアップ内の系統名クリック → 検索欄には「その系統名」ではなく
+// 「クリック元の停留所名」をセットする。系統名で検索しても完全一致の
+// 自分自身しかヒットせずユーザーにとって無意味だったため、停留所名にする
+// ことで、同じ停留所を使う事業者・系統が全部リストアップされるようにする。
+// クリックした系統自体の地図上でのハイライト表示（星マーカー）は従来通り
+// その場で行う
 function onPopupRouteClick(operator, route, anchorStopId) {
   const match = allRoutes.find(r => r.operator === operator && r.route === route)
   if (!match) return
-  query.value = route
+  const anchorStop = anchorStopId != null ? stopsById[anchorStopId] : null
+  query.value = anchorStop ? anchorStop.name : route
   selectRoute(match, anchorStopId)
 }
 
