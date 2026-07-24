@@ -329,6 +329,17 @@ function sanitizeInput(str, maxLength) {
     .slice(0, maxLength)
 }
 
+// ピンのメモ欄用。sanitizeInputは改行(\x0A)も含めて全ての制御文字と連続空白を
+// 1個のスペースに潰してしまうため、複数行のメモには使えない。ここでは
+// \n(0x0A)だけは残しつつ、それ以外の制御文字を除去し、前後の空白のみtrimする
+function sanitizeMemo(str, maxLength) {
+  return String(str)
+    .replace(/\r\n/g, '\n')
+    .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, maxLength)
+}
+
 function createUserLocationIcon() {
   return window.__L.divIcon({
     html: `<span class="user-location-dot"><span class="user-location-pulse"></span></span>`,
@@ -593,7 +604,8 @@ function buildPendingPinPopupHtml(lat, lng) {
     </div>`
   const actionHtml = clickedPins.value.length >= CLICKED_PIN_LIMIT
     ? `<p class="landmark-error">ピンは${CLICKED_PIN_LIMIT}件までです。削除してから追加してください</p>`
-    : `<button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">📌 記録する</button>`
+    : `<textarea class="pin-memo-input" maxlength="300" placeholder="メモ（300文字まで）"></textarea>
+       <button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">📌 記録する</button>`
   return `<div class="landmark-popup">
     <p class="landmark-popup-title">📍 この地点</p>
     ${streetViewHtml}
@@ -625,8 +637,15 @@ function buildClickedPinPopupHtml(pin, number) {
       <a href="https://map.yahoo.co.jp/place?lat=${lat}&lon=${lng}&zoom=16&maptype=basic" target="_blank" rel="noopener">📍 Yahoo! Map</a>
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
+  // 6行(line-height 1.5em × 6 = 9em)を超えるメモはCSS側(.pin-memo-display)で
+  // 縦スクロールになる。改行はescapeHtml後もそのまま残るので、
+  // white-space: pre-wrap で見た目上の改行として反映させる
+  const memoHtml = pin.memo
+    ? `<div class="pin-memo-display">${escapeHtml(pin.memo)}</div>`
+    : ''
   return `<div class="landmark-popup">
     <p class="landmark-popup-title">📍 ピン #${number}</p>
+    ${memoHtml}
     ${streetViewHtml}
     ${externalLinksHtml}
     <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">このピンを削除</button>
@@ -667,13 +686,14 @@ function renderClickedPins() {
 
 // ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
 // 確定する（クリックした時点ではまだ何も保存していない）
-function addClickedPin(lat, lng) {
+function addClickedPin(lat, lng, memoRaw) {
   if (clickedPins.value.length >= CLICKED_PIN_LIMIT) return
 
   const pin = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     lat,
     lng,
+    memo: sanitizeMemo(memoRaw || '', 300),
     createdAt: Date.now()
   }
   clickedPins.value.push(pin)
@@ -1176,7 +1196,9 @@ onMounted(async () => {
     }
     const pinRecordEl = e.target.closest('.pin-record-btn')
     if (pinRecordEl) {
-      addClickedPin(Number(pinRecordEl.dataset.lat), Number(pinRecordEl.dataset.lng))
+      const popupEl = pinRecordEl.closest('.landmark-popup')
+      const memoEl = popupEl ? popupEl.querySelector('.pin-memo-input') : null
+      addClickedPin(Number(pinRecordEl.dataset.lat), Number(pinRecordEl.dataset.lng), memoEl ? memoEl.value : '')
       return
     }
     const pageEl = e.target.closest('.stop-page-link')
@@ -1737,6 +1759,36 @@ onMounted(async () => {
   margin: 0 0 8px;
   color: #444;
   font-size: 12px;
+}
+
+:deep(.pin-memo-input) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 3em;
+}
+
+/* 6行(line-height 1.5em × 6 = 9em)を超えたら縦スクロールにする */
+:deep(.pin-memo-display) {
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5em;
+  max-height: 9em;
+  overflow-y: auto;
 }
 
 :deep(.landmark-delete-btn) {
