@@ -25,14 +25,14 @@
           >OSM(JA)</button>
           <button
             type="button"
-            :class="{ active: labelLayerKind === 'google-en' }"
-            @click="setLabelLayer('google-en')"
-          >Google(EN)</button>
+            :class="{ active: labelLayerKind === 'google-en-roads' }"
+            @click="setLabelLayer('google-en-roads')"
+          >Google-h(EN)</button>
           <button
             type="button"
-            :class="{ active: labelLayerKind === 'wikimedia-en' }"
-            @click="setLabelLayer('wikimedia-en')"
-          >Wikimedia(EN)</button>
+            :class="{ active: labelLayerKind === 'google-en-map' }"
+            @click="setLabelLayer('google-en-map')"
+          >Google-m(EN)</button>
         </div>
       </div>
 
@@ -139,7 +139,9 @@ import { useI18n } from '../composables/useI18n'
 const { locale, t, toggleLocale } = useI18n()
 
 // 地図タイルの英語ラベル化・比較検証用（本採用が決まったら固定化・簡略化する予定）
-const labelLayerKind = ref('osm-ja') // 'osm-ja' | 'google-en' | 'wikimedia-en'
+// ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
+//   変更されているため使用不可と判明。選択肢から除外した
+const labelLayerKind = ref('osm-ja') // 'osm-ja' | 'google-en-roads' | 'google-en-map'
 let currentLabelLayer = null
 const LABEL_LAYER_CONFIGS = {
   'osm-ja': {
@@ -150,8 +152,9 @@ const LABEL_LAYER_CONFIGS = {
       opacity: 0.85
     }
   },
-  // Google非公式タイル。hl=enでラベル言語を英語化。lyrs=hは道路・地名ラベルのみの透過レイヤー
-  'google-en': {
+  // Google非公式タイル。lyrs=hは道路・地名ラベルのみの透過レイヤーで、
+  // 線が細く衛星写真の上では視認しづらい（参考用に残す）
+  'google-en-roads': {
     url: 'https://mt1.google.com/vt/lyrs=h&hl=en&x={x}&y={y}&z={z}',
     options: {
       attribution: '© Google',
@@ -159,12 +162,13 @@ const LABEL_LAYER_CONFIGS = {
       opacity: 0.85
     }
   },
-  // Wikimedia提供のOSMベースタイル。?lang=enでラベル言語を指定（無ければ現地語にフォールバック）
-  'wikimedia-en': {
-    url: 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png?lang=en',
+  // Google非公式タイル。lyrs=mは不透明の標準ロードマップで、
+  // OSM標準タイルに近い見た目（道路が色付きで見える）が期待できる
+  'google-en-map': {
+    url: 'https://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
     options: {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, style by Wikimedia',
-      maxZoom: 19,
+      attribution: '© Google',
+      maxZoom: 21,
       opacity: 0.85
     }
   }
@@ -1359,7 +1363,7 @@ onMounted(async () => {
   //   console.error('❌ Error adding tile layer:', e);
   // }
   
-  // ラベルレイヤー（OSM/Google英語/Wikimedia英語の比較検証用）。
+  // ラベルレイヤー（OSM/Google英語ラベル2種の比較検証用）。
   // 既定はosm-ja（従来通りの見た目）で、UIのスイッチャーから切り替え可能
   setLabelLayer(labelLayerKind.value)
   
