@@ -2264,7 +2264,7 @@ onMounted(async () => {
   cursor: pointer;
   color: #1d4ed8;
   text-decoration: none;
-  background: rgba(243, 244, 246, 0.85);
+  background: rgba(243, 244, 246, 0.5);
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 4px 7px;
