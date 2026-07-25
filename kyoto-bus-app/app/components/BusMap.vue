@@ -6,18 +6,21 @@
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
-      <button
-        class="lang-toggle-btn"
-        type="button"
-        :title="t('langToggleTitle')"
-        @click="toggleLocale"
-      >
-        🌐 {{ t('langToggleLabel') }}
-      </button>
+      <div class="top-bar">
+        <button
+          class="lang-toggle-btn"
+          type="button"
+          :title="t('langToggleTitle')"
+          @click="toggleLocale"
+        >
+          🌐 {{ t('langToggleLabel') }}
+        </button>
+      </div>
 
-      <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
+      <div class="ui-row">
+        <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
-      <div class="panel" v-else>
+        <div class="panel" v-else>
         <div class="count">{{ t('stopCount', { stops: stopCount.toLocaleString(), routes: routeCount.toLocaleString() }) }}</div>
 
         <input
@@ -72,9 +75,14 @@
           >衛星+OSM(JA)</button>
           <button
             type="button"
-            :class="{ active: tilePresetKind === 'gsi-blank-google-h' }"
-            @click="setTilePreset('gsi-blank-google-h')"
-          >GSI白地図+Google-h(EN)</button>
+            :class="{ active: tilePresetKind === 'google-h-en' }"
+            @click="setTilePreset('google-h-en')"
+          >衛星+Google-h(EN)</button>
+          <button
+            type="button"
+            :class="{ active: tilePresetKind === 'google-m-en' }"
+            @click="setTilePreset('google-m-en')"
+          >Google-m(EN)</button>
           <button
             type="button"
             :class="{ active: tilePresetKind === 'carto-nolabel-google-h' }"
@@ -125,6 +133,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -139,9 +148,9 @@ const { locale, t, toggleLocale } = useI18n()
 // 地図タイルの英語ラベル化・比較検証用（本採用が決まったら固定化・簡略化する予定）
 // ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
 //   変更されているため使用不可と判明。選択肢から除外した
-// ※google-h(EN)は道路・地名ラベルのみの透過レイヤーなので、衛星写真の上に重ねると
-//   線が細く視認しづらい。不透明の白地図（ラベル無しベースマップ）と組み合わせる方式にした
-const tilePresetKind = ref('original') // 'original' | 'gsi-blank-google-h' | 'carto-nolabel-google-h'
+// ※国土地理院「白地図」(xyz/blank)は実際に組み合わせたところ表示に失敗（高ズームで
+//   タイルが提供されていない可能性が高い）。選択肢から除外した
+const tilePresetKind = ref('original') // 'original' | 'google-h-en' | 'google-m-en' | 'carto-nolabel-google-h'
 let currentBaseTileLayer = null
 let currentOverlayTileLayer = null
 
@@ -149,10 +158,14 @@ const GOOGLE_SATELLITE_JA = {
   url: 'https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}',
   options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
 }
-// Google非公式タイル。lyrs=hは道路・地名ラベルのみの透過レイヤー。
-// 不透明な白地図ベースと組み合わせて初めて実用的な見た目になる
+// Google非公式タイル。lyrs=hは道路・地名ラベルのみの透過レイヤー
 const GOOGLE_ROADS_EN = {
   url: 'https://mt1.google.com/vt/lyrs=h&hl=en&x={x}&y={y}&z={z}',
+  options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
+}
+// Google非公式タイル。lyrs=mは不透明の標準ロードマップ（道路が色付きで見える）
+const GOOGLE_ROADMAP_EN = {
+  url: 'https://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
   options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
 }
 
@@ -169,15 +182,18 @@ const TILE_PRESETS = {
       }
     }
   },
-  // 国土地理院「白地図」（文字無し・地物のみの不透明ベース）+ Google英語ラベル透過レイヤー
-  'gsi-blank-google-h': {
-    base: {
-      url: 'https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png',
-      options: { attribution: '© 国土地理院', maxZoom: 18, opacity: 1 }
-    },
+  // 衛星写真(暗め) + Google英語ラベル透過レイヤー（ベースは元のまま変更不要だった）
+  'google-h-en': {
+    base: GOOGLE_SATELLITE_JA,
     overlay: GOOGLE_ROADS_EN
   },
-  // CARTO Positron(nolabels)（OSMデータベースの文字無し不透明ベース）+ Google英語ラベル透過レイヤー
+  // 衛星写真(暗め) + Google英語の不透明ロードマップ（ベースは元のまま変更不要だった）
+  'google-m-en': {
+    base: GOOGLE_SATELLITE_JA,
+    overlay: GOOGLE_ROADMAP_EN
+  },
+  // CARTO Positron(nolabels)（OSMデータベースの文字無し不透明ベース、ズーム0〜20対応）
+  // + Google英語ラベル透過レイヤー
   'carto-nolabel-google-h': {
     base: {
       url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
@@ -1502,8 +1518,7 @@ onMounted(async () => {
   right: 12px;
   z-index: 1000;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 8px;
   pointer-events: none;
   max-height: calc(100vh - 24px);
@@ -1511,6 +1526,18 @@ onMounted(async () => {
 
 .ui-overlay > * {
   pointer-events: auto;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .status {
@@ -1522,8 +1549,6 @@ onMounted(async () => {
 }
 
 .lang-toggle-btn {
-  order: 99;
-  margin-left: auto;
   border: none;
   background: rgba(255, 255, 255, 0.75);
   padding: 6px 12px;
