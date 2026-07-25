@@ -83,8 +83,11 @@
         </div>
 
         <div class="history-panel" v-if="viewHistory.length">
-          <div class="history-header">{{ t('recentlyViewed') }}</div>
-          <div class="history-list">
+          <button class="history-header" @click="historyPanelOpen = !historyPanelOpen">
+            {{ t('recentlyViewed') }}
+            <span class="history-toggle-arrow">{{ historyPanelOpen ? '▲' : '▼' }}</span>
+          </button>
+          <div class="history-list" v-if="historyPanelOpen">
             <button
               v-for="h in viewHistory"
               :key="h.coordKey"
@@ -195,6 +198,7 @@ const geocoding = ref(false)
 const landmarks = ref([])
 // ランドマーク入力欄は初期状態でたたんでおき、ヘッダー部分をクリックすると開く
 const landmarkPanelOpen = ref(false)
+const historyPanelOpen = ref(false)
 
 // 最近見た停留所の履歴。座標(coordKey)ごとに1件のみ保持し、再訪すると
 // 先頭に繰り上がる（ブラウザの閲覧履歴と同じ挙動）。localStorageに永続化する
@@ -1738,15 +1742,29 @@ onMounted(async () => {
 }
 
 .history-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   font-weight: 600;
   color: #333;
-  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.history-toggle-arrow {
+  font-size: 10px;
+  color: #888;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: 6px;
   /* 直近4件ぶんの高さに収め、5件目以降はスクロールで見る
      (history-item高さ約26px + gap4px を4件ぶん) */
   max-height: 124px;
