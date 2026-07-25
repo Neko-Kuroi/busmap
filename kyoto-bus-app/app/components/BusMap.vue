@@ -6,21 +6,9 @@
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
-      <div class="top-bar">
-        <button
-          class="lang-toggle-btn"
-          type="button"
-          :title="t('langToggleTitle')"
-          @click="toggleLocale"
-        >
-          🌐 {{ t('langToggleLabel') }}
-        </button>
-      </div>
+      <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
-      <div class="ui-row">
-        <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
-
-        <div class="panel" v-else>
+      <div class="panel" v-else>
         <div class="count">{{ t('stopCount', { stops: stopCount.toLocaleString(), routes: routeCount.toLocaleString() }) }}</div>
 
         <input
@@ -108,7 +96,15 @@
             </button>
           </div>
         </div>
-      </div>
+
+        <button
+          class="lang-toggle-btn"
+          type="button"
+          :title="t('langToggleTitle')"
+          @click="toggleLocale"
+        >
+          🌐 {{ t('langToggleLabel') }}
+        </button>
       </div>
     </div>
   </div>
@@ -121,11 +117,6 @@ import { useI18n } from '../composables/useI18n'
 
 const { locale, t, toggleLocale } = useI18n()
 
-// 地図タイルの英語ラベル化・比較検証用（本採用が決まったら固定化・簡略化する予定）
-// ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
-//   変更されているため使用不可と判明。選択肢から除外した
-// ※国土地理院「白地図」(xyz/blank)は実際に組み合わせたところ表示に失敗（高ズームで
-//   タイルが提供されていない可能性が高い）。選択肢から除外した
 // 地図タイル：日本語/英語の2択のみ。🌐言語切替ボタン(locale)と自動連動する
 // ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
 //   変更されているため使用不可と判明。
@@ -1477,7 +1468,8 @@ onMounted(async () => {
   right: 12px;
   z-index: 1000;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
   pointer-events: none;
   max-height: calc(100vh - 24px);
@@ -1485,18 +1477,6 @@ onMounted(async () => {
 
 .ui-overlay > * {
   pointer-events: auto;
-}
-
-.top-bar {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.ui-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
 }
 
 .status {
@@ -1508,6 +1488,7 @@ onMounted(async () => {
 }
 
 .lang-toggle-btn {
+  align-self: flex-end;
   border: none;
   background: rgba(255, 255, 255, 0.75);
   padding: 6px 12px;
