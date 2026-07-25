@@ -6,35 +6,14 @@
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
     <div class="ui-overlay">
-      <div class="lang-controls">
-        <button
-          class="lang-toggle-btn"
-          type="button"
-          :title="t('langToggleTitle')"
-          @click="toggleLocale"
-        >
-          🌐 {{ t('langToggleLabel') }}
-        </button>
-
-        <!-- 地図タイルの英語ラベル化・比較検証用（本採用が決まったら撤去予定） -->
-        <div class="tile-compare-switcher" title="地図タイルラベルの比較（検証用）">
-          <button
-            type="button"
-            :class="{ active: labelLayerKind === 'osm-ja' }"
-            @click="setLabelLayer('osm-ja')"
-          >OSM(JA)</button>
-          <button
-            type="button"
-            :class="{ active: labelLayerKind === 'google-en-roads' }"
-            @click="setLabelLayer('google-en-roads')"
-          >Google-h(EN)</button>
-          <button
-            type="button"
-            :class="{ active: labelLayerKind === 'google-en-map' }"
-            @click="setLabelLayer('google-en-map')"
-          >Google-m(EN)</button>
-        </div>
-      </div>
+      <button
+        class="lang-toggle-btn"
+        type="button"
+        :title="t('langToggleTitle')"
+        @click="toggleLocale"
+      >
+        🌐 {{ t('langToggleLabel') }}
+      </button>
 
       <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
@@ -84,6 +63,25 @@
       </div>
 
       <div class="right-stack">
+        <!-- 地図タイルの英語ラベル化・比較検証用（本採用が決まったら撤去予定） -->
+        <div class="tile-preset-switcher" title="地図タイルの組み合わせを比較（検証用）">
+          <button
+            type="button"
+            :class="{ active: tilePresetKind === 'original' }"
+            @click="setTilePreset('original')"
+          >衛星+OSM(JA)</button>
+          <button
+            type="button"
+            :class="{ active: tilePresetKind === 'gsi-blank-google-h' }"
+            @click="setTilePreset('gsi-blank-google-h')"
+          >GSI白地図+Google-h(EN)</button>
+          <button
+            type="button"
+            :class="{ active: tilePresetKind === 'carto-nolabel-google-h' }"
+            @click="setTilePreset('carto-nolabel-google-h')"
+          >Carto白地図+Google-h(EN)</button>
+        </div>
+
         <div class="landmark-panel">
           <button class="landmark-header" @click="landmarkPanelOpen = !landmarkPanelOpen">
             {{ t('addLandmarkTitle') }}
@@ -141,53 +139,78 @@ const { locale, t, toggleLocale } = useI18n()
 // 地図タイルの英語ラベル化・比較検証用（本採用が決まったら固定化・簡略化する予定）
 // ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
 //   変更されているため使用不可と判明。選択肢から除外した
-const labelLayerKind = ref('osm-ja') // 'osm-ja' | 'google-en-roads' | 'google-en-map'
-let currentLabelLayer = null
-const LABEL_LAYER_CONFIGS = {
-  'osm-ja': {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    options: {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      maxZoom: 21,
-      opacity: 0.85
+// ※google-h(EN)は道路・地名ラベルのみの透過レイヤーなので、衛星写真の上に重ねると
+//   線が細く視認しづらい。不透明の白地図（ラベル無しベースマップ）と組み合わせる方式にした
+const tilePresetKind = ref('original') // 'original' | 'gsi-blank-google-h' | 'carto-nolabel-google-h'
+let currentBaseTileLayer = null
+let currentOverlayTileLayer = null
+
+const GOOGLE_SATELLITE_JA = {
+  url: 'https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}',
+  options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
+}
+// Google非公式タイル。lyrs=hは道路・地名ラベルのみの透過レイヤー。
+// 不透明な白地図ベースと組み合わせて初めて実用的な見た目になる
+const GOOGLE_ROADS_EN = {
+  url: 'https://mt1.google.com/vt/lyrs=h&hl=en&x={x}&y={y}&z={z}',
+  options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
+}
+
+const TILE_PRESETS = {
+  // 従来通り：衛星写真(暗め) + OSM標準タイル(日本語ラベル)
+  original: {
+    base: GOOGLE_SATELLITE_JA,
+    overlay: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      options: {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+        maxZoom: 21,
+        opacity: 0.85
+      }
     }
   },
-  // Google非公式タイル。lyrs=hは道路・地名ラベルのみの透過レイヤーで、
-  // 線が細く衛星写真の上では視認しづらい（参考用に残す）
-  'google-en-roads': {
-    url: 'https://mt1.google.com/vt/lyrs=h&hl=en&x={x}&y={y}&z={z}',
-    options: {
-      attribution: '© Google',
-      maxZoom: 21,
-      opacity: 0.85
-    }
+  // 国土地理院「白地図」（文字無し・地物のみの不透明ベース）+ Google英語ラベル透過レイヤー
+  'gsi-blank-google-h': {
+    base: {
+      url: 'https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png',
+      options: { attribution: '© 国土地理院', maxZoom: 18, opacity: 1 }
+    },
+    overlay: GOOGLE_ROADS_EN
   },
-  // Google非公式タイル。lyrs=mは不透明の標準ロードマップで、
-  // OSM標準タイルに近い見た目（道路が色付きで見える）が期待できる
-  'google-en-map': {
-    url: 'https://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
-    options: {
-      attribution: '© Google',
-      maxZoom: 21,
-      opacity: 0.85
-    }
+  // CARTO Positron(nolabels)（OSMデータベースの文字無し不透明ベース）+ Google英語ラベル透過レイヤー
+  'carto-nolabel-google-h': {
+    base: {
+      url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+      options: {
+        attribution: '&copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+        maxZoom: 20,
+        opacity: 1,
+        subdomains: 'abcd'
+      }
+    },
+    overlay: GOOGLE_ROADS_EN
   }
 }
 
-function setLabelLayer(kind) {
+function setTilePreset(kind) {
   const L = window.__L
   if (!L || !map) return
-  const config = LABEL_LAYER_CONFIGS[kind] || LABEL_LAYER_CONFIGS['osm-ja']
-  if (currentLabelLayer) {
-    map.removeLayer(currentLabelLayer)
-    currentLabelLayer = null
+  const preset = TILE_PRESETS[kind] || TILE_PRESETS.original
+  if (currentBaseTileLayer) {
+    map.removeLayer(currentBaseTileLayer)
+    currentBaseTileLayer = null
+  }
+  if (currentOverlayTileLayer) {
+    map.removeLayer(currentOverlayTileLayer)
+    currentOverlayTileLayer = null
   }
   try {
-    currentLabelLayer = L.tileLayer(config.url, config.options).addTo(map)
+    currentBaseTileLayer = L.tileLayer(preset.base.url, preset.base.options).addTo(map)
+    currentOverlayTileLayer = L.tileLayer(preset.overlay.url, preset.overlay.options).addTo(map)
   } catch (e) {
     console.error('❌ Error adding tile layer:', e)
   }
-  labelLayerKind.value = kind
+  tilePresetKind.value = kind
 }
 
 const mapEl = ref(null)
@@ -1333,39 +1356,9 @@ onMounted(async () => {
   })
 
   
-  try {
-    L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}', {
-    
-      attribution: '© Google',
-      maxZoom: 21,
-      opacity: 0.6
-    }).addTo(map);
-  } catch (e) {
-    console.error('❌ Error adding tile layer:', e);
-  }
-  
-  // try {
-  //   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-  //     attribution: '© 国土地理院',
-  //     maxZoom: 17,
-  //     opacity: 0.7
-  //   }).addTo(map);
-  // } catch (e) {
-  //   console.error('❌ Error adding tile layer:', e);
-  // }
-  
-  // try {
-  //   L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-  //     maxZoom: 21,
-  //     opacity: 0.6
-  //   }).addTo(map);
-  // } catch (e) {
-  //   console.error('❌ Error adding tile layer:', e);
-  // }
-  
-  // ラベルレイヤー（OSM/Google英語ラベル2種の比較検証用）。
-  // 既定はosm-ja（従来通りの見た目）で、UIのスイッチャーから切り替え可能
-  setLabelLayer(labelLayerKind.value)
+  // ベース+ラベルのタイル組み合わせ（比較検証用）。
+  // 既定はoriginal（従来通りの見た目）で、UIのスイッチャーから切り替え可能
+  setTilePreset(tilePresetKind.value)
   
   // try {
   //   L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
@@ -1528,16 +1521,9 @@ onMounted(async () => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-.lang-controls {
+.lang-toggle-btn {
   order: 99;
   margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.lang-toggle-btn {
   border: none;
   background: rgba(255, 255, 255, 0.75);
   padding: 6px 12px;
@@ -1552,23 +1538,26 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.95);
 }
 
-/* 地図タイルラベルの比較検証用UI。本採用の方式が決まったら削除予定 */
-.tile-compare-switcher {
+/* 地図タイルの組み合わせ比較検証用UI。本採用の方式が決まったら削除予定 */
+.tile-preset-switcher {
   display: flex;
+  flex-direction: column;
   gap: 4px;
+  align-items: flex-end;
 }
 
-.tile-compare-switcher button {
+.tile-preset-switcher button {
   border: none;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 3px 6px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 4px 8px;
   border-radius: 4px;
   font-size: 10px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 
-.tile-compare-switcher button.active {
+.tile-preset-switcher button.active {
   background: #2563eb;
   color: white;
   font-weight: 600;
