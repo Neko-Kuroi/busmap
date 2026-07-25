@@ -2232,15 +2232,15 @@ onMounted(async () => {
   color: #666;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   margin-top: 4px;
 }
 
 /* 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
-   系統一覧だけを独立したブロックにして、約5件ぶんの高さを超えたら
-   その部分だけ縦スクロールにする */
+   系統一覧だけを独立したブロックにして、約4件ぶんの高さを超えたら
+   その部分だけ縦スクロールにする（地図を覆う面積を抑えるため5件→4件に縮小） */
 :deep(.stop-routes-scroll) {
-  max-height: 150px;
+  max-height: 90px;
   overflow-y: auto;
   margin-top: 2px;
   padding-right: 2px;
@@ -2267,7 +2267,7 @@ onMounted(async () => {
   background: rgba(243, 244, 246, 0.5);
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  padding: 4px 7px;
+  padding: 3px 7px;
   font-size: 11px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
@@ -2287,6 +2287,8 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
+/* 他のマップサービスへのリンク一覧も、約2件ぶんの高さを超えたら
+   縦スクロールにして地図を覆う面積を抑える */
 :deep(.stop-external-links) {
   margin-top: 6px;
   padding-top: 4px;
@@ -2294,6 +2296,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 32px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 :deep(.stop-external-links a) {
