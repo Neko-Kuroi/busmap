@@ -1013,7 +1013,7 @@ function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
         .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
-        .join('<br>')
+        .join('')
     : t('noRouteInfo')
   // 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
   // 系統一覧だけを独立したブロック(stop-routes-scroll)にして、5行を超えたら
@@ -2225,30 +2225,56 @@ onMounted(async () => {
   color: #444;
 }
 
+/* 系統一覧を縦積みのパレット状にする。display:flexで各route-linkを
+   ブロック化することで、文字列以外の右側の空白部分もタップ領域になる
+   （下部の外部リンク一覧 .stop-external-links と同じ考え方） */
 :deep(.stop-routes-inline) {
   color: #666;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
 }
 
-/* 系統が多い停留所でポップアップが縦にどんどん伸びないよう、系統一覧だけを
-   5行ぶんの高さ(line-height 1.5em × 5)に収めてそこだけ縦スクロールにする */
+/* 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
+   系統一覧だけを独立したブロックにして、約5件ぶんの高さを超えたら
+   その部分だけ縦スクロールにする */
 :deep(.stop-routes-scroll) {
-  max-height: 7.5em;
-  line-height: 1.5em;
+  max-height: 150px;
   overflow-y: auto;
   margin-top: 2px;
+  padding-right: 2px;
 }
 
-:deep(.route-link),
 :deep(.operator-link) {
   cursor: pointer;
   color: #1d4ed8;
   text-decoration: underline dotted;
 }
 
-:deep(.route-link:hover),
 :deep(.operator-link:hover) {
   color: #dc2626;
   text-decoration: underline;
+}
+
+/* 系統リンクは検索結果パネルの .route-item と同じパレット状ボタンに見せる。
+   display:blockで幅いっぱいに広げ、文字列以外の余白部分もタップできるようにする */
+:deep(.route-link) {
+  display: block;
+  cursor: pointer;
+  color: #1d4ed8;
+  text-decoration: none;
+  background: rgba(243, 244, 246, 0.85);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 11px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+:deep(.route-link:hover) {
+  background: #e0e7ff;
+  color: #dc2626;
 }
 
 :deep(.stop-link) {
