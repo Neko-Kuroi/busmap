@@ -545,8 +545,8 @@ function buildLandmarkPopupHtml(landmark, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="300"
-    height="300"
+    width="280"
+    height="280"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -595,7 +595,7 @@ function renderLandmarks() {
   const L = window.__L
   landmarks.value.forEach((lm, idx) => {
     const marker = L.marker([lm.lat, lm.lng], { icon: createLandmarkIcon(), bubblingMouseEvents: false })
-    marker.bindPopup(buildLandmarkPopupHtml(lm, idx + 1), { maxWidth: 320 })
+    marker.bindPopup(buildLandmarkPopupHtml(lm, idx + 1), { maxWidth: 300 })
     marker.addTo(landmarkLayer)
   })
 }
@@ -672,8 +672,8 @@ function buildPendingPinPopupHtml(lat, lng) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="300"
-    height="300"
+    width="280"
+    height="280"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -707,8 +707,8 @@ function buildClickedPinPopupHtml(pin, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="300"
-    height="300"
+    width="280"
+    height="280"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -763,7 +763,7 @@ function renderClickedPins() {
   const L = window.__L
   clickedPins.value.forEach((pin, idx) => {
     const marker = L.marker([pin.lat, pin.lng], { icon: createClickedPinIcon(), bubblingMouseEvents: false })
-    marker.bindPopup(buildClickedPinPopupHtml(pin, idx + 1), { maxWidth: 320 })
+    marker.bindPopup(buildClickedPinPopupHtml(pin, idx + 1), { maxWidth: 300 })
     bindHoverPopup(marker)
     marker.addTo(pinLayer)
   })
@@ -990,8 +990,8 @@ function buildLocationExtrasHtml(lat, lng) {
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed"
-    width="300"
-    height="300"
+    width="280"
+    height="280"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -1145,7 +1145,7 @@ function renderHighlight(route, anchorStopId) {
         bubblingMouseEvents: false
       })
       const initialPage = groupPageByCoord[coordKey] || 0
-      marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 320 })
+      marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 300 })
       bindHoverPopup(marker)
 
       marker._coordKey = coordKey
@@ -1311,7 +1311,7 @@ onMounted(async () => {
     }
     const { lat, lng } = e.latlng
     const L = window.__L
-    pendingPinPopup = L.popup({ maxWidth: 320 })
+    pendingPinPopup = L.popup({ maxWidth: 300 })
       .setLatLng(e.latlng)
       .setContent(buildPendingPinPopupHtml(lat, lng))
       .openOn(map)
@@ -1435,7 +1435,7 @@ onMounted(async () => {
     })
 
     const initialPage = groupPageByCoord[coordKey] || 0
-    marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 320 })
+    marker.bindPopup(buildGroupedPopupHtml(coordKey, initialPage), { maxWidth: 300 })
     bindHoverPopup(marker)
 
     marker._coordKey = coordKey
@@ -1501,9 +1501,9 @@ onMounted(async () => {
 
 .status {
   background: rgba(255, 255, 255, 0.42);
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -1524,39 +1524,40 @@ onMounted(async () => {
 
 .panel {
   background: rgba(255, 255, 255, 0.46);
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-  width: min(340px, calc(100vw - 24px));
+  width: min(280px, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
   overflow-y: auto;
 }
 
 .count {
   color: #333;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
 }
 
 .search {
   width: 100%;
   box-sizing: border-box;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .locate-btn {
-  margin-top: 6px;
+  margin-top: 5px;
   width: 100%;
   box-sizing: border-box;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border: 1px solid #2563eb;
   background: #eff6ff;
   color: #1d4ed8;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -1570,25 +1571,25 @@ onMounted(async () => {
 }
 
 .geo-unsupported {
-  margin: 6px 0 0;
-  font-size: 11px;
+  margin: 5px 0 0;
+  font-size: 10px;
   color: #888;
 }
 
 .geo-error {
-  margin: 6px 0 0;
-  font-size: 12px;
+  margin: 5px 0 0;
+  font-size: 11px;
   color: #dc2626;
 }
 
 .route-list {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   /* 画面の高さに応じて伸びる45vhではなく、約5件ぶんの高さに固定して
      それ以降はスクロールで見る（下へ下へ伸び続けないようにする） */
-  max-height: 260px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
@@ -1597,7 +1598,7 @@ onMounted(async () => {
   background: rgba(243, 244, 246, 0.85);
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1620,33 +1621,34 @@ onMounted(async () => {
 
 .route-name {
   font-weight: 600;
+  font-size: 12px;
 }
 
 .route-operator {
-  font-size: 11px;
+  font-size: 10px;
   color: #666;
 }
 
 .route-matched-stop {
-  font-size: 11px;
+  font-size: 10px;
   color: #0d9488;
   margin-top: 2px;
 }
 
 .no-hit {
   color: #888;
-  font-size: 12px;
+  font-size: 11px;
   margin: 4px 0 0;
 }
 
 .selected {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   background: #fef2f2;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border-radius: 6px;
 }
 
@@ -1655,8 +1657,8 @@ onMounted(async () => {
   background: #dc2626;
   color: white;
   border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 12px;
+  padding: 3px 7px;
+  font-size: 11px;
   cursor: pointer;
 }
 
