@@ -180,6 +180,7 @@ function setTileLayersForLocale(loc) {
 // 🌐ボタンで言語が切り替わったら地図タイルも自動追従させる
 watch(locale, (newLocale) => {
   setTileLayersForLocale(newLocale)
+  refreshPopupsForLocale()
 })
 
 const mapEl = ref(null)
@@ -836,6 +837,31 @@ function renderClickedPins() {
     bindHoverPopup(marker)
     marker.addTo(pinLayer)
   })
+}
+
+// 言語切り替え時に呼ばれる。bindPopup()はその場のHTML文字列を1回だけ
+// 焼き込むだけで、Vueのリアクティブバインディングではないため、
+// あとからlocaleが変わっても自動では更新されない。baseLayer/highlightLayer
+// 双方のマーカーのポップアップ（開いているものも含む。setPopupContentは
+// 開いている最中のポップアップも即座に再描画する）と、星マーカーの
+// ミニツールチップ、ランドマーク・ピンのポップアップを全て作り直す。
+function refreshPopupsForLocale() {
+  for (const coordKey in groupsByCoordKey) {
+    const entry = groupsByCoordKey[coordKey]
+    const page = groupPageByCoord[coordKey] || 0
+    const html = buildGroupedPopupHtml(coordKey, page)
+    if (entry.baseMarker) {
+      entry.baseMarker.setPopupContent(html)
+    }
+    if (entry.starMarker) {
+      entry.starMarker.setPopupContent(html)
+      if (entry.starMarker.getTooltip()) {
+        entry.starMarker.setTooltipContent(buildMiniStopLabel(entry.stops[0], entry.stops.length))
+      }
+    }
+  }
+  renderLandmarks()
+  renderClickedPins()
 }
 
 // ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
