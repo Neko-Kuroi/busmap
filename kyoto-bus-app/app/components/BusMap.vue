@@ -38,17 +38,17 @@
             :class="{ active: isActive(r) }"
             @click="selectRoute(r)"
           >
-            <span class="route-name">{{ r.route }}</span>
-            <span class="route-operator">{{ t('routeOperatorCount', { operator: r.operator, count: r.count }) }}</span>
+            <span class="route-name">{{ displayRouteName(r.operator, r.route) }}</span>
+            <span class="route-operator">{{ t('routeOperatorCount', { operator: displayOperator(r.operator), count: r.count }) }}</span>
             <span class="route-matched-stop" v-if="r.matchedStopNames.length">
-              {{ t('matchedStopPrefix', { names: r.matchedStopNames.join('、') }) }}
+              {{ t('matchedStopPrefix', { names: r.matchedStopNames.map(displayStopName).join('、') }) }}
             </span>
           </button>
           <p class="no-hit" v-if="filteredRoutes.length === 0">{{ t('noMatch') }}</p>
         </div>
 
         <div class="selected" v-if="selectedRoute">
-          <span>{{ t('selectedRoute', { route: selectedRoute.route, operator: selectedRoute.operator }) }}</span>
+          <span>{{ t('selectedRoute', { route: displayRouteName(selectedRoute.operator, selectedRoute.route), operator: displayOperator(selectedRoute.operator) }) }}</span>
           <button class="clear" @click="clearSelection">{{ t('clearSelection') }}</button>
         </div>
       </div>
@@ -94,7 +94,7 @@
               class="history-item"
               @click="goToHistoryEntry(h)"
             >
-              <span class="history-name">{{ h.name }}</span>
+              <span class="history-name">{{ displayStopName({ id: h.stopId, name: h.name }) }}</span>
               <span class="history-other" v-if="h.otherCount">{{ t('moreCount', { count: h.otherCount }) }}</span>
             </button>
           </div>
@@ -222,6 +222,40 @@ let pinLayer = null
 // L.popup単体で、次のクリック時や記録確定時に閉じる
 let pendingPinPopup = null
 let stopsById = {}
+
+// 英語版データのルックアップ（fetch完了前は空オブジェクトなので、
+// 見つからない場合は元の日本語にフォールバックする設計）
+let stopNameEnById = {}
+let routeNameEnByKey = {}
+let operatorEnByJa = {}
+
+// locale==='en'の時だけ英語版を返し、訳が無い場合や日本語の時は
+// 元の文字列にフォールバックする（英語データが未生成・欠けていても
+// アプリ全体は壊れない）
+function displayStopName(stop) {
+  if (!stop) return ''
+  if (locale.value === 'en') {
+    const en = stopNameEnById[String(stop.id)]
+    if (en) return en
+  }
+  return stop.name
+}
+
+function displayRouteName(operator, route) {
+  if (locale.value === 'en') {
+    const en = routeNameEnByKey[operator + '||' + route]
+    if (en) return en
+  }
+  return route
+}
+
+function displayOperator(operatorJa) {
+  if (locale.value === 'en') {
+    const en = operatorEnByJa[operatorJa]
+    if (en) return en
+  }
+  return operatorJa
+}
 let markersById = {}
 let highlightMarkersById = {}
 let hiddenMarkerIds = []
@@ -318,15 +352,16 @@ const filteredRoutes = computed(() => {
     for (const r of allRoutes) {
       const key = r.operator + '||' + r.route
       if (seenKeys.has(key)) continue
-      const hitNames = [...new Set(
+      const hitStops = [...new Map(
         r.stopIds
           .filter(id => matchedStopIds.has(id))
-          .map(id => stopsById[id]?.name)
+          .map(id => stopsById[id])
           .filter(Boolean)
-      )]
-      if (hitNames.length) {
+          .map(s => [s.name, s])
+      ).values()]
+      if (hitStops.length) {
         seenKeys.add(key)
-        result.push({ ...r, matchedStopNames: hitNames })
+        result.push({ ...r, matchedStopNames: hitStops })
       }
     }
   }
@@ -863,6 +898,7 @@ function recordHistory(coordKey) {
 
   viewHistory.value.unshift({
     coordKey,
+    stopId: first.id,
     name: first.name,
     otherCount,
     lat: first.lat,
@@ -1012,23 +1048,23 @@ function onPopupOperatorClick(operator) {
 function buildStopSubLabel(stop) {
   const routesHtml = stop.routes.length
     ? stop.routes
-        .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(rt)}</span>`)
+        .map(rt => `<span class="route-link" data-operator="${escapeHtml(stop.operator)}" data-route="${escapeHtml(rt)}" data-stop-id="${stop.id}">${escapeHtml(displayRouteName(stop.operator, rt))}</span>`)
         .join('')
     : t('noRouteInfo')
   // 系統が多い停留所ではポップアップが縦にどんどん伸びてしまうため、
   // 系統一覧だけを独立したブロック(stop-routes-scroll)にして、5行を超えたら
   // その部分だけ縦スクロールにする（停留所名・かな等は伸びず固定のまま）
-  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(stop.operator)}</span><div class="stop-routes-inline stop-routes-scroll">${routesHtml}</div>`
+  return `<span class="operator-link" data-operator="${escapeHtml(stop.operator)}">${escapeHtml(displayOperator(stop.operator))}</span><div class="stop-routes-inline stop-routes-scroll">${routesHtml}</div>`
 }
 
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
 // （同一座標に複数stopがある場合、ツールチップに全件詰め込まず代表1件＋件数のみ表示する）
 function buildMiniStopLabel(stop, groupSize) {
-  const kanaHtml = stop.kana ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
+  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
   const otherHtml = groupSize && groupSize > 1
     ? `<br><span class="stop-mini-other">${escapeHtml(t('moreCount', { count: groupSize - 1 }))}</span>`
     : ''
-  return `<span class="stop-mini-name">${escapeHtml(stop.name)}</span>${kanaHtml}${otherHtml}`
+  return `<span class="stop-mini-name">${escapeHtml(displayStopName(stop))}</span>${kanaHtml}${otherHtml}`
 }
 
 function buildLocationExtrasHtml(lat, lng) {
@@ -1057,7 +1093,7 @@ function buildLocationExtrasHtml(lat, lng) {
 }
 
 function buildPopupHtml(stop, subLabel) {
-  const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = subLabel ? `<div class="stop-sub">${subLabel}</div>` : ''
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
@@ -1066,7 +1102,7 @@ function buildPopupHtml(stop, subLabel) {
   const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
 
   return `<div class="stop-popup">
-    <p class="stop-name">${escapeHtml(stop.name)}</p>
+    <p class="stop-name">${escapeHtml(displayStopName(stop))}</p>
     ${kanaHtml}
     ${subLabelHtml}
     ${linkHtml}
@@ -1094,7 +1130,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   const page = Math.min(Math.max(pageIndex || 0, 0), total - 1)
   const stop = stopGroup[page]
 
-  const kanaHtml = stop.kana ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = `<div class="stop-sub">${buildStopSubLabel(stop)}</div>`
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
@@ -1116,7 +1152,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
 
   return `<div class="stop-popup">
     ${pagerHtml}
-    <p class="stop-name">${escapeHtml(stop.name)}</p>
+    <p class="stop-name">${escapeHtml(displayStopName(stop))}</p>
     ${kanaHtml}
     ${subLabelHtml}
     ${linkHtml}
@@ -1441,19 +1477,27 @@ onMounted(async () => {
   //    }).addTo(map)
   //  })
 
-  const [stopsRes, routesRes, poisRes, routeLinesRes] = await Promise.all([
+  const [stopsRes, routesRes, poisRes, routeLinesRes, stopsEnRes, routesEnRes, operatorsEnRes] = await Promise.all([
     fetch('/data/mlit_stops.json'),
     fetch('/data/mlit_routes.json'),
     // nearby_pois.jsonはオフラインの距離計算スクリプトで別途生成する想定のファイル。
     // まだ生成していない・置いていない環境でもアプリ自体は動くよう、
     // 取得失敗はcatchして空データ扱いにする（POI機能が使えないだけで他は正常動作する）
     fetch('/data/nearby_pois.json').catch(() => null),
-    fetch('/data/route_lines.geojson').catch(() => null)
+    fetch('/data/route_lines.geojson').catch(() => null),
+    // 英語版データ（停留所名・系統名・事業者名）。無くても日本語表示に
+    // フォールバックしてアプリは正常動作するよう、取得失敗はcatchする
+    fetch('/data/mlit_stops_en.json').catch(() => null),
+    fetch('/data/mlit_routes_en.json').catch(() => null),
+    fetch('/data/operators_en.json').catch(() => null)
   ])
   const stops = await stopsRes.json()
   allRoutes = await routesRes.json()
   const nearbyPoisByCoord = (poisRes && poisRes.ok) ? await poisRes.json() : {}
   routeLinesGeojson = (routeLinesRes && routeLinesRes.ok) ? await routeLinesRes.json() : null
+  stopNameEnById = (stopsEnRes && stopsEnRes.ok) ? await stopsEnRes.json() : {}
+  routeNameEnByKey = (routesEnRes && routesEnRes.ok) ? await routesEnRes.json() : {}
+  operatorEnByJa = (operatorsEnRes && operatorsEnRes.ok) ? await operatorsEnRes.json() : {}
 
   stopCount.value = stops.length
   routeCount.value = allRoutes.length
