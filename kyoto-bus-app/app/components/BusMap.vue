@@ -41,7 +41,7 @@
             <span class="route-name">{{ displayRouteName(r.operator, r.route) }}</span>
             <span class="route-operator">{{ t('routeOperatorCount', { operator: displayOperator(r.operator), count: r.count }) }}</span>
             <span class="route-matched-stop" v-if="r.matchedStopNames.length">
-              {{ t('matchedStopPrefix', { names: r.matchedStopNames.map(displayStopName).join('、') }) }}
+              {{ t('matchedStopPrefix', { names: r.matchedStopNames.map(displayStopName).join(locale === 'ja' ? '、' : ', ') }) }}
             </span>
           </button>
           <p class="no-hit" v-if="filteredRoutes.length === 0">{{ t('noMatch') }}</p>
@@ -100,14 +100,17 @@
           </div>
         </div>
 
-        <button
-          class="lang-toggle-btn"
-          type="button"
-          :title="t('langToggleTitle')"
-          @click="toggleLocale"
+        <select
+          class="lang-select"
+          :title="t('langSelectTitle')"
+          :aria-label="t('langSelectTitle')"
+          :value="locale"
+          @change="setLocale($event.target.value)"
         >
-          🌐 {{ t('langToggleLabel') }}
-        </button>
+          <option v-for="opt in LOCALE_OPTIONS" :key="opt.value" :value="opt.value">
+            🌐 {{ opt.label }}
+          </option>
+        </select>
       </div>
     </div>
   </div>
@@ -116,51 +119,61 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { normalize } from '@geolonia/normalize-japanese-addresses'
-import { useI18n } from '../composables/useI18n'
+import { useI18n, LOCALE_OPTIONS } from '../composables/useI18n'
 
-const { locale, t, toggleLocale } = useI18n()
+const { locale, t, setLocale } = useI18n()
 
-// 地図タイル：日本語/英語の2択のみ。🌐言語切替ボタン(locale)と自動連動する
+// 地図タイル：6言語対応（ja/en/th/hi/es/fr）。言語切替ドロップダウン(locale)と
+// 自動連動する。
 // ※Wikimedia(osm-intl)は2020年10月から第三者サイトを403でブロックする仕様に
 //   変更されているため使用不可と判明。
 // ※国土地理院「白地図」(xyz/blank)は実際に組み合わせたところ表示に失敗（高ズームで
 //   タイルが提供されていない可能性が高い）。
 // ※Google lyrs=h（透過ラベルのみ）・CARTO nolabelsも検証したが、最終的に
-//   衛星写真+OSM(JA) / 衛星写真+Google lyrs=m(EN) の組み合わせを採用した
+//   衛星写真+OSM(JA) / 衛星写真+Google lyrs=m(他言語) の組み合わせを採用した。
+//   日本語だけOSMを使うのは、OSMの方が日本国内の地物・POIラベルが充実している
+//   ため。th/hi/es/frはenと同じ理由（OSM(JA)相当の充実したデータが無い）で
+//   Google lyrs=mにhl=<locale>を渡す方式に統一する
 let currentBaseTileLayer = null
 let currentOverlayTileLayer = null
 
-const GOOGLE_SATELLITE_JA = {
-  url: 'https://mt1.google.com/vt/lyrs=s&hl=ja&x={x}&y={y}&z={z}',
-  options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
+function googleSatelliteTile(hl) {
+  return {
+    url: `https://mt1.google.com/vt/lyrs=s&hl=${hl}&x={x}&y={y}&z={z}`,
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
+  }
 }
 
-const TILE_PRESETS_BY_LOCALE = {
-  ja: {
-    base: GOOGLE_SATELLITE_JA,
-    overlay: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-        maxZoom: 21,
-        opacity: 0.85
-      }
-    }
-  },
-  // Google非公式タイル。lyrs=mは不透明の標準ロードマップ（道路が色付きで見える）
-  en: {
-    base: GOOGLE_SATELLITE_JA,
-    overlay: {
-      url: 'https://mt1.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
-      options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
-    }
+function googleRoadmapTile(hl) {
+  return {
+    url: `https://mt1.google.com/vt/lyrs=m&hl=${hl}&x={x}&y={y}&z={z}`,
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
   }
+}
+
+const OSM_OVERLAY_JA = {
+  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  options: {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+    maxZoom: 21,
+    opacity: 0.85
+  }
+}
+
+// ロケールごとのタイルプリセットを都度組み立てる。jaのみOSMオーバーレイ、
+// それ以外（en/th/hi/es/fr）はGoogleロードマップにhl=<locale>を渡して
+// ラベル言語を切り替える
+function tilePresetForLocale(loc) {
+  if (loc === 'ja') {
+    return { base: googleSatelliteTile('ja'), overlay: OSM_OVERLAY_JA }
+  }
+  return { base: googleSatelliteTile(loc), overlay: googleRoadmapTile(loc) }
 }
 
 function setTileLayersForLocale(loc) {
   const L = window.__L
   if (!L || !map) return
-  const preset = TILE_PRESETS_BY_LOCALE[loc] || TILE_PRESETS_BY_LOCALE.ja
+  const preset = tilePresetForLocale(loc)
   if (currentBaseTileLayer) {
     map.removeLayer(currentBaseTileLayer)
     currentBaseTileLayer = null
@@ -180,6 +193,7 @@ function setTileLayersForLocale(loc) {
 // 🌐ボタンで言語が切り替わったら地図タイルも自動追従させる
 watch(locale, (newLocale) => {
   setTileLayersForLocale(newLocale)
+  refreshPopupsForLocale()
 })
 
 const mapEl = ref(null)
@@ -229,12 +243,15 @@ let stopNameEnById = {}
 let routeNameEnByKey = {}
 let operatorEnByJa = {}
 
-// locale==='en'の時だけ英語版を返し、訳が無い場合や日本語の時は
-// 元の文字列にフォールバックする（英語データが未生成・欠けていても
-// アプリ全体は壊れない）
+// 日本語以外のロケール（en/th/hi/es/fr）では共通で英語ローマ字版を返し、
+// 訳が無い場合や日本語ロケールの時は元の文字列にフォールバックする
+// （英語データが未生成・欠けていてもアプリ全体は壊れない）。
+// 停留所名・系統名・事業者名は固有名詞であり、タイ語話者もヒンディー語話者も
+// スペイン語話者もフランス語話者も日本の看板ではローマ字表記を見るため、
+// 英語版データを「非日本語話者共通のローマ字レイヤー」として全ロケールで流用する
 function displayStopName(stop) {
   if (!stop) return ''
-  if (locale.value === 'en') {
+  if (locale.value !== 'ja') {
     const en = stopNameEnById[String(stop.id)]
     if (en) return en
   }
@@ -242,7 +259,7 @@ function displayStopName(stop) {
 }
 
 function displayRouteName(operator, route) {
-  if (locale.value === 'en') {
+  if (locale.value !== 'ja') {
     const en = routeNameEnByKey[operator + '||' + route]
     if (en) return en
   }
@@ -250,7 +267,7 @@ function displayRouteName(operator, route) {
 }
 
 function displayOperator(operatorJa) {
-  if (locale.value === 'en') {
+  if (locale.value !== 'ja') {
     const en = operatorEnByJa[operatorJa]
     if (en) return en
   }
@@ -308,9 +325,10 @@ function uniqueStopNamesForCoord(coordKey) {
   const seen = new Set()
   const names = []
   for (const s of entry.stops) {
-    if (!seen.has(s.name)) {
-      seen.add(s.name)
-      names.push(s.name)
+    const name = displayStopName(s)
+    if (!seen.has(name)) {
+      seen.add(name)
+      names.push(name)
     }
   }
   return names
@@ -318,20 +336,35 @@ function uniqueStopNamesForCoord(coordKey) {
 
 const filteredRoutes = computed(() => {
   // OR連結された複数語（例:「烏丸御池 OR 地下鉄烏丸御池」）を50文字制限で
-  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする
-  const raw = sanitizeInput(query.value, 120)
+  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする。
+  // 英語の停留所名は日本語より文字数が長くなりがちなため、
+  // OR連結した際に途中で切れないよう180文字に拡張
+  const raw = sanitizeInput(query.value, 180)
   if (!raw) return []
+
+  // 日本語以外のロケール（en/th/hi/es/fr）では画面に見えてる文字列
+  // （displayXxx系ヘルパー、無ければ日本語にフォールバック）と照合する。
+  // 停留所名・系統名のローマ字データはth/hi/es/frでも共通で英語版を流用する
+  // 方針のため、ラテン文字である以上は英語同様に大文字小文字を無視して比較する
+  const isRomanized = locale.value !== 'ja'
 
   // " OR " で分割し、いずれかの語にマッチすればヒット扱いにする。
   // 手動入力の通常検索では1語のみになるため、従来の単純一致と同じ挙動になる
   const terms = raw.split(' OR ').map(t => t.trim()).filter(Boolean)
-  const matchesQuery = (str) => !!str && terms.some(t => str.includes(t))
+  const normalizedTerms = isRomanized ? terms.map(t => t.toLowerCase()) : terms
+  const matchesQuery = (str) => {
+    if (!str) return false
+    const target = isRomanized ? str.toLowerCase() : str
+    return normalizedTerms.some(t => target.includes(t))
+  }
 
   const seenKeys = new Set()
   const result = []
 
   for (const r of allRoutes) {
-    if (matchesQuery(r.route) || matchesQuery(r.operator)) {
+    const routeText = isRomanized ? displayRouteName(r.operator, r.route) : r.route
+    const operatorText = isRomanized ? displayOperator(r.operator) : r.operator
+    if (matchesQuery(routeText) || matchesQuery(operatorText)) {
       const key = r.operator + '||' + r.route
       if (!seenKeys.has(key)) {
         seenKeys.add(key)
@@ -343,7 +376,10 @@ const filteredRoutes = computed(() => {
   const matchedStopIds = new Set()
   for (const id in stopsById) {
     const s = stopsById[id]
-    if (matchesQuery(s.name) || (s.kana && matchesQuery(s.kana))) {
+    const nameText = isRomanized ? displayStopName(s) : s.name
+    // かなは日本語ロケール以外では表示自体していない（buildMiniStopLabel等で
+    // locale.value === 'ja' の時だけ出す仕様）ので、検索対象からも外す
+    if (matchesQuery(nameText) || (locale.value === 'ja' && s.kana && matchesQuery(s.kana))) {
       matchedStopIds.add(s.id)
     }
   }
@@ -357,7 +393,7 @@ const filteredRoutes = computed(() => {
           .filter(id => matchedStopIds.has(id))
           .map(id => stopsById[id])
           .filter(Boolean)
-          .map(s => [s.name, s])
+          .map(s => [displayStopName(s), s])
       ).values()]
       if (hitStops.length) {
         seenKeys.add(key)
@@ -388,7 +424,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#ec4899', weight: 3.5, opacity: 0.4 } //#f472b6
+    style: { color: '#ed55a0', weight: 4.0, opacity: 0.4 } //#f472b6 #ec4899
   }).addTo(routeLinesLayer)
 }
 
@@ -838,6 +874,31 @@ function renderClickedPins() {
   })
 }
 
+// 言語切り替え時に呼ばれる。bindPopup()はその場のHTML文字列を1回だけ
+// 焼き込むだけで、Vueのリアクティブバインディングではないため、
+// あとからlocaleが変わっても自動では更新されない。baseLayer/highlightLayer
+// 双方のマーカーのポップアップ（開いているものも含む。setPopupContentは
+// 開いている最中のポップアップも即座に再描画する）と、星マーカーの
+// ミニツールチップ、ランドマーク・ピンのポップアップを全て作り直す。
+function refreshPopupsForLocale() {
+  for (const coordKey in groupsByCoordKey) {
+    const entry = groupsByCoordKey[coordKey]
+    const page = groupPageByCoord[coordKey] || 0
+    const html = buildGroupedPopupHtml(coordKey, page)
+    if (entry.baseMarker) {
+      entry.baseMarker.setPopupContent(html)
+    }
+    if (entry.starMarker) {
+      entry.starMarker.setPopupContent(html)
+      if (entry.starMarker.getTooltip()) {
+        entry.starMarker.setTooltipContent(buildMiniStopLabel(entry.stops[0], entry.stops.length))
+      }
+    }
+  }
+  renderLandmarks()
+  renderClickedPins()
+}
+
 // ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
 // 確定する（クリックした時点ではまだ何も保存していない）
 function addClickedPin(lat, lng, memoRaw) {
@@ -1031,16 +1092,16 @@ function onPopupRouteClick(operator, route, anchorStopId) {
   if (anchorStop) {
     const coordKey = coordKeyOf(anchorStop.lat, anchorStop.lng)
     const names = uniqueStopNamesForCoord(coordKey)
-    query.value = names.length ? names.join(' OR ') : anchorStop.name
+    query.value = names.length ? names.join(' OR ') : displayStopName(anchorStop)
   } else {
-    query.value = route
+    query.value = displayRouteName(operator, route)
   }
 
   selectRoute(match, anchorStopId)
 }
 
 function onPopupOperatorClick(operator) {
-  query.value = operator
+  query.value = displayOperator(operator)
   // 系統は選択しないが、事業者の路線パスだけは表示する
   renderRouteLines(operator)
 }
@@ -1060,7 +1121,7 @@ function buildStopSubLabel(stop) {
 // groupSizeが2以上の場合、代表停留所名の下に「他◯件」を添える
 // （同一座標に複数stopがある場合、ツールチップに全件詰め込まず代表1件＋件数のみ表示する）
 function buildMiniStopLabel(stop, groupSize) {
-  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
+  const kanaHtml = (stop.kana && locale.value === 'ja') ? `<br><span class="stop-mini-kana">${escapeHtml(stop.kana)}</span>` : ''
   const otherHtml = groupSize && groupSize > 1
     ? `<br><span class="stop-mini-other">${escapeHtml(t('moreCount', { count: groupSize - 1 }))}</span>`
     : ''
@@ -1093,7 +1154,7 @@ function buildLocationExtrasHtml(lat, lng) {
 }
 
 function buildPopupHtml(stop, subLabel) {
-  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const kanaHtml = (stop.kana && locale.value === 'ja') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = subLabel ? `<div class="stop-sub">${subLabel}</div>` : ''
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
@@ -1130,7 +1191,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   const page = Math.min(Math.max(pageIndex || 0, 0), total - 1)
   const stop = stopGroup[page]
 
-  const kanaHtml = (stop.kana && locale.value !== 'en') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
+  const kanaHtml = (stop.kana && locale.value === 'ja') ? `<p class="stop-kana">${escapeHtml(stop.kana)}</p>` : ''
   const subLabelHtml = `<div class="stop-sub">${buildStopSubLabel(stop)}</div>`
   const linkHtml = stop.url
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
@@ -1576,10 +1637,6 @@ onMounted(async () => {
   height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
   height: 100dvh; /* モバイルのアドレスバー分の高さズレに追従し、
                      右下のズームボタン・帰属表示が画面外にはみ出さないようにする */
-  /* フォントを明示指定しないとブラウザ・OSによっては日本語が明朝体（セリフ体）で
-     表示されてしまうことがあるため、ゴシック体（サンセリフ体）を明示する */
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
-    "Yu Gothic", "Noto Sans JP", "Segoe UI", Roboto, sans-serif;
 }
 
 #map {
@@ -1617,19 +1674,20 @@ onMounted(async () => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-.lang-toggle-btn {
+.lang-select {
   align-self: flex-end;
   border: none;
   background: rgba(255, 255, 255, 0.75);
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  max-width: min(160px, calc(100vw - 24px));
 }
 
-.lang-toggle-btn:hover {
+.lang-select:hover {
   background: rgba(255, 255, 255, 0.95);
 }
 
@@ -1801,7 +1859,6 @@ onMounted(async () => {
   background: none;
   padding: 0;
   font: inherit;
-  font-size: 12px;
   font-weight: 600;
   color: #333;
   cursor: pointer;
