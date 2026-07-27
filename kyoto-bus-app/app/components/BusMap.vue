@@ -1637,6 +1637,10 @@ onMounted(async () => {
   height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
   height: 100dvh; /* モバイルのアドレスバー分の高さズレに追従し、
                      右下のズームボタン・帰属表示が画面外にはみ出さないようにする */
+  /* フォントを明示指定しないとブラウザ・OSによっては日本語が明朝体（セリフ体）で
+     表示されてしまうことがあるため、ゴシック体（サンセリフ体）を明示する */
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic", "Noto Sans JP", "Segoe UI", Roboto, sans-serif;
 }
 
 #map {
@@ -1859,6 +1863,7 @@ onMounted(async () => {
   background: none;
   padding: 0;
   font: inherit;
+  font-size: 12px;
   font-weight: 600;
   color: #333;
   cursor: pointer;
