@@ -41,7 +41,7 @@
             <span class="route-name">{{ displayRouteName(r.operator, r.route) }}</span>
             <span class="route-operator">{{ t('routeOperatorCount', { operator: displayOperator(r.operator), count: r.count }) }}</span>
             <span class="route-matched-stop" v-if="r.matchedStopNames.length">
-              {{ t('matchedStopPrefix', { names: r.matchedStopNames.map(displayStopName).join(locale === 'en' ? ', ' : '、') }) }}
+              {{ t('matchedStopPrefix', { names: r.matchedStopNames.map(displayStopName).join('、') }) }}
             </span>
           </button>
           <p class="no-hit" v-if="filteredRoutes.length === 0">{{ t('noMatch') }}</p>
@@ -180,7 +180,6 @@ function setTileLayersForLocale(loc) {
 // 🌐ボタンで言語が切り替わったら地図タイルも自動追従させる
 watch(locale, (newLocale) => {
   setTileLayersForLocale(newLocale)
-  refreshPopupsForLocale()
 })
 
 const mapEl = ref(null)
@@ -309,10 +308,9 @@ function uniqueStopNamesForCoord(coordKey) {
   const seen = new Set()
   const names = []
   for (const s of entry.stops) {
-    const name = displayStopName(s)
-    if (!seen.has(name)) {
-      seen.add(name)
-      names.push(name)
+    if (!seen.has(s.name)) {
+      seen.add(s.name)
+      names.push(s.name)
     }
   }
   return names
@@ -320,35 +318,20 @@ function uniqueStopNamesForCoord(coordKey) {
 
 const filteredRoutes = computed(() => {
   // OR連結された複数語（例:「烏丸御池 OR 地下鉄烏丸御池」）を50文字制限で
-  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする。
-  // 英語の停留所名は日本語より文字数が長くなりがちなため、
-  // OR連結した際に途中で切れないよう180文字に拡張
-  const raw = sanitizeInput(query.value, 180)
+  // 途中で切ってしまわないよう、通常の単語検索より長めの上限にする
+  const raw = sanitizeInput(query.value, 120)
   if (!raw) return []
-
-  // 英語モードでは画面に見えてる文字列（displayXxx系ヘルパー、無ければ
-  // 日本語にフォールバック）と照合する。日本語には無い概念だが、英語だと
-  // 大文字小文字を区別されると不便なので、英語モードの時だけ両辺を
-  // toLowerCase()してから比較する
-  const isEn = locale.value === 'en'
 
   // " OR " で分割し、いずれかの語にマッチすればヒット扱いにする。
   // 手動入力の通常検索では1語のみになるため、従来の単純一致と同じ挙動になる
   const terms = raw.split(' OR ').map(t => t.trim()).filter(Boolean)
-  const normalizedTerms = isEn ? terms.map(t => t.toLowerCase()) : terms
-  const matchesQuery = (str) => {
-    if (!str) return false
-    const target = isEn ? str.toLowerCase() : str
-    return normalizedTerms.some(t => target.includes(t))
-  }
+  const matchesQuery = (str) => !!str && terms.some(t => str.includes(t))
 
   const seenKeys = new Set()
   const result = []
 
   for (const r of allRoutes) {
-    const routeText = isEn ? displayRouteName(r.operator, r.route) : r.route
-    const operatorText = isEn ? displayOperator(r.operator) : r.operator
-    if (matchesQuery(routeText) || matchesQuery(operatorText)) {
+    if (matchesQuery(r.route) || matchesQuery(r.operator)) {
       const key = r.operator + '||' + r.route
       if (!seenKeys.has(key)) {
         seenKeys.add(key)
@@ -360,10 +343,7 @@ const filteredRoutes = computed(() => {
   const matchedStopIds = new Set()
   for (const id in stopsById) {
     const s = stopsById[id]
-    const nameText = isEn ? displayStopName(s) : s.name
-    // kanaは英語モードでは表示自体していない（buildMiniStopLabel等で
-    // locale.value !== 'en' の時だけ出す仕様）ので、検索対象からも外す
-    if (matchesQuery(nameText) || (!isEn && s.kana && matchesQuery(s.kana))) {
+    if (matchesQuery(s.name) || (s.kana && matchesQuery(s.kana))) {
       matchedStopIds.add(s.id)
     }
   }
@@ -377,7 +357,7 @@ const filteredRoutes = computed(() => {
           .filter(id => matchedStopIds.has(id))
           .map(id => stopsById[id])
           .filter(Boolean)
-          .map(s => [displayStopName(s), s])
+          .map(s => [s.name, s])
       ).values()]
       if (hitStops.length) {
         seenKeys.add(key)
@@ -408,7 +388,7 @@ function renderRouteLines(operator) {
   }
   L.geoJSON(filtered, {
     interactive: false,
-    style: { color: '#ed55a0', weight: 4.0, opacity: 0.4 } //#f472b6 #ec4899
+    style: { color: '#ec4899', weight: 3.5, opacity: 0.4 } //#f472b6
   }).addTo(routeLinesLayer)
 }
 
@@ -858,31 +838,6 @@ function renderClickedPins() {
   })
 }
 
-// 言語切り替え時に呼ばれる。bindPopup()はその場のHTML文字列を1回だけ
-// 焼き込むだけで、Vueのリアクティブバインディングではないため、
-// あとからlocaleが変わっても自動では更新されない。baseLayer/highlightLayer
-// 双方のマーカーのポップアップ（開いているものも含む。setPopupContentは
-// 開いている最中のポップアップも即座に再描画する）と、星マーカーの
-// ミニツールチップ、ランドマーク・ピンのポップアップを全て作り直す。
-function refreshPopupsForLocale() {
-  for (const coordKey in groupsByCoordKey) {
-    const entry = groupsByCoordKey[coordKey]
-    const page = groupPageByCoord[coordKey] || 0
-    const html = buildGroupedPopupHtml(coordKey, page)
-    if (entry.baseMarker) {
-      entry.baseMarker.setPopupContent(html)
-    }
-    if (entry.starMarker) {
-      entry.starMarker.setPopupContent(html)
-      if (entry.starMarker.getTooltip()) {
-        entry.starMarker.setTooltipContent(buildMiniStopLabel(entry.stops[0], entry.stops.length))
-      }
-    }
-  }
-  renderLandmarks()
-  renderClickedPins()
-}
-
 // ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
 // 確定する（クリックした時点ではまだ何も保存していない）
 function addClickedPin(lat, lng, memoRaw) {
@@ -1076,16 +1031,16 @@ function onPopupRouteClick(operator, route, anchorStopId) {
   if (anchorStop) {
     const coordKey = coordKeyOf(anchorStop.lat, anchorStop.lng)
     const names = uniqueStopNamesForCoord(coordKey)
-    query.value = names.length ? names.join(' OR ') : displayStopName(anchorStop)
+    query.value = names.length ? names.join(' OR ') : anchorStop.name
   } else {
-    query.value = displayRouteName(operator, route)
+    query.value = route
   }
 
   selectRoute(match, anchorStopId)
 }
 
 function onPopupOperatorClick(operator) {
-  query.value = displayOperator(operator)
+  query.value = operator
   // 系統は選択しないが、事業者の路線パスだけは表示する
   renderRouteLines(operator)
 }
@@ -1621,6 +1576,10 @@ onMounted(async () => {
   height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
   height: 100dvh; /* モバイルのアドレスバー分の高さズレに追従し、
                      右下のズームボタン・帰属表示が画面外にはみ出さないようにする */
+  /* フォントを明示指定しないとブラウザ・OSによっては日本語が明朝体（セリフ体）で
+     表示されてしまうことがあるため、ゴシック体（サンセリフ体）を明示する */
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic", "Noto Sans JP", "Segoe UI", Roboto, sans-serif;
 }
 
 #map {
@@ -1842,6 +1801,7 @@ onMounted(async () => {
   background: none;
   padding: 0;
   font: inherit;
+  font-size: 12px;
   font-weight: 600;
   color: #333;
   cursor: pointer;
