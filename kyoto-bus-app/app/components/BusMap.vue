@@ -682,7 +682,10 @@ function buildLandmarkPopupHtml(landmark, number) {
     <p class="landmark-popup-address">${escapeHtml(landmark.address)}</p>
     ${streetViewHtml}
     ${externalLinksHtml}
-    <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">${escapeHtml(t('deleteThisLandmark'))}</button>
+    <div class="popup-actions has-primary">
+      <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+      <button class="landmark-delete-btn" data-id="${escapeHtml(landmark.id)}">${escapeHtml(t('deleteThisLandmark'))}</button>
+    </div>
   </div>`
 }
 
@@ -805,9 +808,15 @@ function buildPendingPinPopupHtml(lat, lng) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
   const actionHtml = clickedPins.value.length >= CLICKED_PIN_LIMIT
-    ? `<p class="landmark-error">${escapeHtml(t('pinLimit', { limit: CLICKED_PIN_LIMIT }))}</p>`
+    ? `<p class="landmark-error">${escapeHtml(t('pinLimit', { limit: CLICKED_PIN_LIMIT }))}</p>
+       <div class="popup-actions">
+         <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+       </div>`
     : `<textarea class="pin-memo-input" maxlength="300" placeholder="${escapeHtml(t('memoPlaceholder'))}"></textarea>
-       <button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">${escapeHtml(t('saveBtn'))}</button>`
+       <div class="popup-actions has-primary">
+         <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+         <button class="pin-record-btn" data-lat="${lat}" data-lng="${lng}">${escapeHtml(t('saveBtn'))}</button>
+       </div>`
   return `<div class="landmark-popup">
     <p class="landmark-popup-title">${escapeHtml(t('thisLocation'))}</p>
     ${streetViewHtml}
@@ -850,7 +859,10 @@ function buildClickedPinPopupHtml(pin, number) {
     ${memoHtml}
     ${streetViewHtml}
     ${externalLinksHtml}
-    <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">${escapeHtml(t('deleteThisPin'))}</button>
+    <div class="popup-actions has-primary">
+      <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+      <button class="pin-delete-btn" data-id="${escapeHtml(pin.id)}">${escapeHtml(t('deleteThisPin'))}</button>
+    </div>
   </div>`
 }
 
@@ -1040,7 +1052,14 @@ function locateUser() {
         icon: createUserLocationIcon(),
         zIndexOffset: 1000
       }).addTo(map)
-      userMarker.bindPopup(t('myLocation'))
+      userMarker.bindPopup(
+        `<div class="landmark-popup">
+          <p class="landmark-popup-title">${escapeHtml(t('myLocation'))}</p>
+          <div class="popup-actions">
+            <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+          </div>
+        </div>`
+      )
       map.setView([latitude, longitude], 15)
     },
     (error) => {
@@ -1162,7 +1181,12 @@ function buildLocationExtrasHtml(lat, lng) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
 
-  return streetViewHtml + externalLinksHtml
+  const closeActionHtml = `
+    <div class="popup-actions">
+      <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+    </div>`
+
+  return streetViewHtml + externalLinksHtml + closeActionHtml
 }
 
 function buildPopupHtml(stop, subLabel) {
@@ -1451,6 +1475,11 @@ onMounted(async () => {
   })
 
   mapEl.value.addEventListener('click', (e) => {
+    const closeEl = e.target.closest('.popup-close-btn')
+    if (closeEl) {
+      if (map) map.closePopup()
+      return
+    }
     const deleteEl = e.target.closest('.landmark-delete-btn')
     if (deleteEl) {
       removeLandmark(deleteEl.dataset.id)
@@ -2102,10 +2131,36 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
+/* ポップアップ最下部のアクション行。閉じるボタン(.popup-close-btn)は既定で右寄せ、
+   削除/記録ボタン(.landmark-delete-btn等)が同居する場合のみhas-primaryを付けて
+   両端揃え（閉じる=左・既存ボタン=右）にする */
+.popup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.popup-actions.has-primary {
+  justify-content: space-between;
+}
+
+:deep(.popup-close-btn) {
+  border: none;
+  background: #f3f4f6;
+  color: #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+:deep(.popup-close-btn:hover) {
+  background: #e5e7eb;
+}
+
 :deep(.landmark-delete-btn),
 :deep(.pin-delete-btn) {
-  display: block;
-  margin-left: auto;
   border: none;
   background: #dc2626;
   color: white;
@@ -2115,11 +2170,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-/* 「記録する」ボタンを右寄せにし、メモ欄の下部とのマージンを設ける */
 :deep(.pin-record-btn) {
-  display: block;
-  margin-left: auto;
-  margin-top: 10px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 :deep(.landmark-streetview) {
@@ -2480,6 +2538,13 @@ onMounted(async () => {
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.55);   /* 0.75の数値を下げるほど透明に */
   backdrop-filter: blur(4px);               /* 任意：すりガラス風にしたい場合 */
+}
+
+/* Leaflet標準の.leaflet-popup-contentは margin: 13px 24px 13px 20px 相当と余白が
+   大きいため、検索パネル(.panel { padding: 8px 10px; })に近い値へ縮小する。
+   停留所・ランドマーク・ピン・現在地など全ポップアップ種類に共通で効く */
+:deep(.leaflet-popup-content) {
+  margin: 8px 10px;
 }
 
 :deep(.leaflet-popup-tip) {
