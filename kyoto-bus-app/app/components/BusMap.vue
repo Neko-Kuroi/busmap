@@ -2133,15 +2133,19 @@ onMounted(async () => {
 
 /* ポップアップ最下部のアクション行。閉じるボタン(.popup-close-btn)は既定で右寄せ、
    削除/記録ボタン(.landmark-delete-btn等)が同居する場合のみhas-primaryを付けて
-   両端揃え（閉じる=左・既存ボタン=右）にする */
-.popup-actions {
+   両端揃え（閉じる=左端・既存ボタン=右端）にする。
+   このHTMLはLeafletのbindPopup()に文字列として渡す動的注入コンテンツで、
+   Vueのテンプレートが描画したものではないため、scoped属性が付かない。
+   :deep()を付けないとCSSが一切マッチせず無効化されるので注意（実際に
+   一度この付け忘れで両端揃え・上マージンが効かない不具合が発生した） */
+:deep(.popup-actions) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   margin-top: 10px;
 }
 
-.popup-actions.has-primary {
+:deep(.popup-actions.has-primary) {
   justify-content: space-between;
 }
 
