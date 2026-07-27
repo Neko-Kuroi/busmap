@@ -75,6 +75,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'このピンを削除',
     deleteThisLandmark: 'このランドマークを削除',
     recentlyViewed: '🕘 最近見た停留所',
+    closePopup: '✕ 閉じる',
     langSelectTitle: '言語を選択'
   },
   en: {
@@ -129,6 +130,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'Delete this pin',
     deleteThisLandmark: 'Delete this landmark',
     recentlyViewed: '🕘 Recently viewed stops',
+    closePopup: '✕ Close',
     langSelectTitle: 'Select language'
   },
   th: {
@@ -183,6 +185,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'ลบหมุดนี้',
     deleteThisLandmark: 'ลบจุดสังเกตนี้',
     recentlyViewed: '🕘 ป้ายที่ดูล่าสุด',
+    closePopup: '✕ ปิด',
     langSelectTitle: 'เลือกภาษา'
   },
   hi: {
@@ -237,6 +240,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'यह पिन हटाएं',
     deleteThisLandmark: 'यह लैंडमार्क हटाएं',
     recentlyViewed: '🕘 हाल ही में देखे गए स्टॉप',
+    closePopup: '✕ बंद करें',
     langSelectTitle: 'भाषा चुनें'
   },
   es: {
@@ -291,6 +295,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'Eliminar este marcador',
     deleteThisLandmark: 'Eliminar este punto de referencia',
     recentlyViewed: '🕘 Paradas vistas recientemente',
+    closePopup: '✕ Cerrar',
     langSelectTitle: 'Seleccionar idioma'
   },
   fr: {
@@ -345,6 +350,7 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisPin: 'Supprimer cette épingle',
     deleteThisLandmark: 'Supprimer ce repère',
     recentlyViewed: '🕘 Arrêts récemment consultés',
+    closePopup: '✕ Fermer',
     langSelectTitle: 'Choisir la langue'
   }
 }
