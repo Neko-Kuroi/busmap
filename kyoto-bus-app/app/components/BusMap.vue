@@ -5,6 +5,46 @@
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
+    <!-- 「ランドマークを追加」パネル：画面右端に張り付くタブ。閉状態では📍アイコンだけが
+         はみ出て見え、クリックすると左側へパネルが引き出される（現状のトグル開閉と同じ
+         landmarkPanelOpenで開閉する）。ui-overlayのflexフローから独立させ、position:fixed
+         でロゴ(corner-logo, bottom:120px)のすぐ上に固定する -->
+    <div class="landmark-tab" :class="{ open: landmarkPanelOpen }">
+      <div class="landmark-tab-panel">
+        <div class="landmark-panel-inner">
+          <p class="landmark-panel-title">{{ t('addLandmarkTitle') }}</p>
+          <form class="landmark-form" @submit.prevent="addLandmark">
+            <input
+              class="landmark-input"
+              type="text"
+              v-model="landmarkAddress"
+              maxlength="140"
+              :placeholder="t('addressPlaceholder')"
+              :disabled="geocoding"
+            />
+            <button
+              class="landmark-add-btn"
+              type="submit"
+              :disabled="geocoding || !landmarkAddress.trim()"
+            >
+              {{ geocoding ? t('searching') : t('add') }}
+            </button>
+          </form>
+          <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
+          <p class="landmark-count" v-if="landmarks.length">{{ t('landmarkCount', { count: landmarks.length, limit: LANDMARK_LIMIT }) }}</p>
+        </div>
+      </div>
+      <button
+        class="landmark-tab-handle"
+        type="button"
+        :aria-label="t('addLandmarkTitle')"
+        :title="t('addLandmarkTitle')"
+        @click="landmarkPanelOpen = !landmarkPanelOpen"
+      >
+        📍
+      </button>
+    </div>
+
     <div class="ui-overlay">
       <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
@@ -54,34 +94,6 @@
       </div>
 
       <div class="right-stack">
-        <div class="landmark-panel">
-          <button class="landmark-header" @click="landmarkPanelOpen = !landmarkPanelOpen">
-            {{ t('addLandmarkTitle') }}
-            <span class="landmark-toggle-arrow">{{ landmarkPanelOpen ? '▲' : '▼' }}</span>
-          </button>
-          <template v-if="landmarkPanelOpen">
-            <form class="landmark-form" @submit.prevent="addLandmark">
-              <input
-                class="landmark-input"
-                type="text"
-                v-model="landmarkAddress"
-                maxlength="140"
-                :placeholder="t('addressPlaceholder')"
-                :disabled="geocoding"
-              />
-              <button
-                class="landmark-add-btn"
-                type="submit"
-                :disabled="geocoding || !landmarkAddress.trim()"
-              >
-                {{ geocoding ? t('searching') : t('add') }}
-              </button>
-            </form>
-            <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
-            <p class="landmark-count" v-if="landmarks.length">{{ t('landmarkCount', { count: landmarks.length, limit: LANDMARK_LIMIT }) }}</p>
-          </template>
-        </div>
-
         <div class="history-panel" v-if="viewHistory.length">
           <button class="history-header" @click="historyPanelOpen = !historyPanelOpen">
             {{ t('recentlyViewed') }}
@@ -1132,8 +1144,8 @@ function buildLocationExtrasHtml(lat, lng) {
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed"
-    width="280"
-    height="280"
+    width="260"
+    height="260"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -1846,32 +1858,66 @@ onMounted(async () => {
   margin-left: auto;
 }
 
-.landmark-panel {
-  background: rgba(255, 255, 255, 0.96);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+/* 画面右端に固定されるタブ全体のコンテナ。ロゴ(corner-logo, bottom:120px)の
+   すぐ上に来るようbottomを指定する。widthはauto（中身に応じて可変）だが
+   right:0のため、中身(landmark-tab-panel)の幅がwidth:0→開いた幅へ変化しても
+   コンテナの右端(=landmark-tab-handleの右端)は画面右端に固定されたまま動かず、
+   「ハンドルは動かずパネルだけが左へ引き出される」動きになる */
+.landmark-tab {
+  position: fixed;
+  right: 0;
+  bottom: 210px; /* ※ /logobus.webp の実際の縦幅により微調整が必要な場合がある */
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
 }
 
-.landmark-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: none;
-  background: none;
-  padding: 0;
-  font: inherit;
+.landmark-tab-panel {
+  width: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 8px 0 0 8px;
+  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.25);
+  transition: width 0.2s ease;
+}
+
+.landmark-tab.open .landmark-tab-panel {
+  width: min(260px, calc(100vw - 48px));
+}
+
+/* パネル内側は開いた時の幅で固定しておく。外側(.landmark-tab-panel)の
+   width:0→開いた幅のトランジション中に中身が折り返し直したりガタつかないよう、
+   中身自体は常にフル幅で組んでおき、外側のoverflow:hiddenで見た目上だけ隠す */
+.landmark-panel-inner {
+  width: min(260px, calc(100vw - 48px));
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.landmark-panel-title {
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
   color: #333;
+}
+
+/* タブの見出し部分。閉状態では📍アイコンだけが画面右端からはみ出て見える
+   「タブの頭」として機能し、クリックでlandmarkPanelOpenをトグルする */
+.landmark-tab-handle {
+  flex-shrink: 0;
+  width: 34px;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: -1px 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 17px;
+  line-height: 1;
   cursor: pointer;
 }
 
-.landmark-toggle-arrow {
-  font-size: 10px;
-  color: #888;
+.landmark-tab-handle:hover {
+  background: rgba(255, 255, 255, 1);
 }
 
 .landmark-form {
@@ -2392,10 +2438,19 @@ onMounted(async () => {
   margin: 4px 0 0;
 }
 
+/* 系統リンク(.route-link)・外部マップリンク(.stop-external-links a)と同じ理由で、
+   display:blockにより文字列以外の右側の余白部分もタップ領域にする */
 :deep(.stop-link a) {
+  display: block;
   color: #1d4ed8;
   font-size: 12px;
   text-decoration: underline;
+}
+
+/* 「時刻表を見る」リンク（stop.urlが無い場合は停留所名等）とすぐ下の
+   Googleマップ埋め込みiframeが接近しすぎないよう間隔を設ける */
+:deep(.stop-streetview) {
+  margin-top: 6px;
 }
 
 /* 他のマップサービスへのリンク一覧も、約2件ぶんの高さを超えたら
