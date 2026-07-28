@@ -180,7 +180,7 @@ function googleSatelliteTile(hl) {
     // minZoom:15はこのレイヤー単体の描画開始ズームを絞るだけ。マップ全体の
     // ズーム下限はL.map()初期化時のminZoom:9で別途固定済みなので、
     // ここでの指定がマップ全体の挙動（初期表示ズーム等）に影響することはない
-    options: { attribution: '© Google', maxZoom: 21, minZoom: 15, opacity: 0.6 }
+    options: { attribution: '© Google', maxZoom: 21, minZoom: 15, opacity: 0.75 }
   }
 }
 
