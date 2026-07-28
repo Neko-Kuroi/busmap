@@ -1363,7 +1363,7 @@ const DIMMED_OPACITY = 0.55
 // markerClusterGroupのdisableClusteringAtZoomと、zoomendハンドラでの
 // アイコン更新ループの両方から参照する共有定数。2箇所に同じ値を別々に
 // 書くと、片方だけ変更してズレる事故を防ぐため一箇所にまとめる
-const DISABLE_CLUSTERING_AT_ZOOM = 13
+const DISABLE_CLUSTERING_AT_ZOOM = 14
 
 function renderHighlight(route, anchorStopId) {
   if (!map) return
