@@ -2721,7 +2721,7 @@ onMounted(async () => {
 
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.65);   /* 0.75の数値を下げるほど透明に */
-  /* backdrop-filter: blur(1px);*/               /* 任意：すりガラス風にしたい場合 */
+  backdrop-filter: blur(1px);              /* 任意：すりガラス風にしたい場合 */
 }
 
 /* Leaflet標準の.leaflet-popup-contentは margin: 13px 24px 13px 20px 相当と余白が
