@@ -197,8 +197,8 @@ function gsiSeamlessPhotoTile() {
     options: {
       attribution: '© 国土地理院',
       maxZoom: 21,
-      minZoom: 15,
-      opacity: 0.6,
+      minZoom: 16,
+      opacity: 0.75,
       // GSIのシームレス写真タイル自体はズームレベル18までしか実データが無いため、
       // maxZoomをGoogle衛星写真と揃えて21のままにする場合、19〜21はLeafletが
       // 18のタイルを自動的に拡大表示する（過去のコメントアウト版はmaxZoom:17で
@@ -2721,7 +2721,7 @@ onMounted(async () => {
 
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.55);   /* 0.75の数値を下げるほど透明に */
-  backdrop-filter: blur(4px);               /* 任意：すりガラス風にしたい場合 */
+  backdrop-filter: blur(2px);               /* 任意：すりガラス風にしたい場合 */
 }
 
 /* Leaflet標準の.leaflet-popup-contentは margin: 13px 24px 13px 20px 相当と余白が
