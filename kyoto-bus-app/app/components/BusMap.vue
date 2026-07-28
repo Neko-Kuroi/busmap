@@ -2732,7 +2732,7 @@ onMounted(async () => {
 }
 
 :deep(.leaflet-popup-tip) {
-  background: rgba(0, 0, 0, 0.45);   /* ← これを忘れると、箱は透明なのに
+  background: rgba(255, 255, 255, 0.85);   /* ← これを忘れると、箱は透明なのに
                                                 下の三角だけ真っ白のまま浮いて見える */
 }
 
