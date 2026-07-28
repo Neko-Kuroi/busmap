@@ -177,14 +177,14 @@ let currentOverlayTileLayer = null
 function googleSatelliteTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=s&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6, minZoom: 9 }
   }
 }
 
 function googleRoadmapTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=m&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85, minZoom: 9 }
   }
 }
 
@@ -194,7 +194,7 @@ const OSM_OVERLAY_JA = {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 21,
     opacity: 0.85,
-    minZoom: 10
+    minZoom: 9
   }
 }
 
