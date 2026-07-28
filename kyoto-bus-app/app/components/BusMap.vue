@@ -177,7 +177,7 @@ let currentOverlayTileLayer = null
 function googleSatelliteTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=s&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6, minZoom: 17 }
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6 }
   }
 }
 
