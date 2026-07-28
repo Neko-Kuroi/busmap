@@ -714,8 +714,8 @@ function buildLandmarkPopupHtml(landmark, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="280"
-    height="280"
+    width="200"
+    height="200"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -844,8 +844,8 @@ function buildPendingPinPopupHtml(lat, lng) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="280"
-    height="280"
+    width="200"
+    height="200"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -885,8 +885,8 @@ function buildClickedPinPopupHtml(pin, number) {
   const streetViewHtml = `<div class="landmark-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=18&output=embed"
-    width="280"
-    height="280"
+    width="200"
+    height="200"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -1263,8 +1263,8 @@ function buildLocationExtrasHtml(lat, lng) {
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed"
-    width="260"
-    height="260"
+    width="200"
+    height="200"
     style="border:0;"
     loading="lazy"
     allowfullscreen>
@@ -1816,7 +1816,8 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 8px;
   pointer-events: none;
-  max-height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px); /* dvh未対応ブラウザ向けフォールバック */
+  max-height: calc(100dvh - 24px); /* モバイルのアドレスバー分の高さズレに追従する */
 }
 
 .ui-overlay > * {
@@ -1855,7 +1856,8 @@ onMounted(async () => {
   font-size: 12px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
   width: min(280px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px); /* dvh未対応ブラウザ向けフォールバック */
+  max-height: calc(100dvh - 24px); /* モバイルのアドレスバー分の高さズレに追従する */
   overflow-y: auto;
 }
 
@@ -1940,7 +1942,8 @@ onMounted(async () => {
   border-radius: 10px;
   padding: 16px;
   width: min(340px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px); /* dvh未対応ブラウザ向けフォールバック */
+  max-height: calc(100dvh - 32px); /* モバイルのアドレスバー分の高さズレに追従する */
   overflow-y: auto;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
@@ -1992,6 +1995,18 @@ onMounted(async () => {
      それ以降はスクロールで見る（下へ下へ伸び続けないようにする） */
   max-height: 220px;
   overflow-y: auto;
+}
+
+/* iPhoneなど縦の表示領域が狭い画面では、検索結果が多いと地図を覆い隠して
+   しまうため1行ぶんだけ見せてスクロールにする。10インチタブレットなど
+   高さに余裕がある画面（このmax-heightに掛からない）では従来通り複数行
+   表示のままにする */
+@media (max-height: 700px) {
+  .route-list {
+    /* route-itemは系統名・事業者名・マッチ停留所バッジで最大3行になりうる
+       ため、1行ぶんでも60px程度は確保し、項目の途中で見切れないようにする */
+    max-height: 60px;
+  }
 }
 
 .route-item {
@@ -2068,7 +2083,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: 8px;
   width: min(260px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px); /* dvh未対応ブラウザ向けフォールバック */
+  max-height: calc(100dvh - 24px); /* モバイルのアドレスバー分の高さズレに追従する */
   /* 横並びできる時は右端に寄せ、折り返して2行目に落ちた時はその行の
      右端に寄る（ui-overlayがflex-wrapのため、折り返し後の行にも効く） */
   margin-left: auto;
@@ -2220,6 +2236,13 @@ onMounted(async () => {
      (history-item高さ約26px + gap4px を4件ぶん) */
   max-height: 124px;
   overflow-y: auto;
+}
+
+@media (max-height: 700px) {
+  .history-list {
+    /* history-itemは1行構成(約26px)なので、1行ぶんだけ見せる */
+    max-height: 30px;
+  }
 }
 
 .history-item {
