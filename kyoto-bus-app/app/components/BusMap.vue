@@ -2001,7 +2001,11 @@ onMounted(async () => {
    しまうため1行ぶんだけ見せてスクロールにする。10インチタブレットなど
    高さに余裕がある画面（このmax-heightに掛からない）では従来通り複数行
    表示のままにする */
-@media (max-height: 700px) {
+/* iPhoneは縦持ちでも高さは900px超あることが多く、max-heightでは
+   判定できない（実機検証で確認）。横幅で判定する：iPhoneは縦持ちで
+   幅450px程度、10インチタブレットは700px超えが普通なので、
+   max-width: 600pxを閾値にする */
+@media (max-width: 600px) {
   .route-list {
     /* route-itemは系統名・事業者名・マッチ停留所バッジで最大3行になりうる
        ため、1行ぶんでも60px程度は確保し、項目の途中で見切れないようにする */
@@ -2238,7 +2242,8 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-@media (max-height: 700px) {
+/* route-list側と同じ理由でmax-widthに統一する */
+@media (max-width: 600px) {
   .history-list {
     /* history-itemは1行構成(約26px)なので、1行ぶんだけ見せる */
     max-height: 30px;
@@ -2396,6 +2401,22 @@ onMounted(async () => {
 
 :deep(.landmark-streetview) {
   margin-top: 6px;
+}
+
+/* Google Maps埋め込みiframeのサイズ。HTML属性側は200のままにしてあるが、
+   CSSの方が優先されるのでここで実際の表示サイズを決める。iPhoneなど
+   幅の狭い画面では200のまま、10インチタブレットなど幅に余裕がある画面
+   では300に広げる（scroll対策のmax-heightとは別に、横幅で判定する） */
+:deep(.landmark-streetview iframe) {
+  width: 200px;
+  height: 200px;
+}
+
+@media (min-width: 601px) {
+  :deep(.landmark-streetview iframe) {
+    width: 300px;
+    height: 300px;
+  }
 }
 
 :deep(.landmark-external-links) {
@@ -2725,6 +2746,19 @@ onMounted(async () => {
   margin-top: 6px;
 }
 
+/* landmark-streetview側と同じ理由・同じサイズ設定で統一する */
+:deep(.stop-streetview iframe) {
+  width: 200px;
+  height: 200px;
+}
+
+@media (min-width: 601px) {
+  :deep(.stop-streetview iframe) {
+    width: 300px;
+    height: 300px;
+  }
+}
+
 /* 他のマップサービスへのリンク一覧も、約2件ぶんの高さを超えたら
    縦スクロールにして地図を覆う面積を抑える */
 :deep(.stop-external-links) {
@@ -2785,7 +2819,7 @@ onMounted(async () => {
   opacity: 0.95;
   right: 0px;
   bottom: 120px;
-  width: 130px;
+  width: 170px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
