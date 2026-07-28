@@ -1,5 +1,5 @@
 <template>
-  <div class="map-wrap">
+  <div class="map-wrap" :dir="isRtl ? 'rtl' : 'ltr'">
     <div id="map" ref="mapEl"></div>
 
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
@@ -158,7 +158,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { normalize } from '@geolonia/normalize-japanese-addresses'
 import { useI18n, LOCALE_OPTIONS } from '../composables/useI18n'
 
-const { locale, t, setLocale } = useI18n()
+const { locale, t, setLocale, isRtl } = useI18n()
 
 // 地図タイル：6言語対応（ja/en/th/hi/es/fr）。言語切替ドロップダウン(locale)と
 // 自動連動する。
