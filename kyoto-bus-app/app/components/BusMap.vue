@@ -1737,7 +1737,7 @@ onMounted(async () => {
         // 飛び出す/収束するアニメーションを無効化。4685件規模だとこの
         // アニメーション計算・DOM再構成のコストが無視できないため、
         // まずここを切って体感速度を測る
-        animate: false,
+        animate: true,
         iconCreateFunction: createClusterIcon
       })
     : L.layerGroup()
