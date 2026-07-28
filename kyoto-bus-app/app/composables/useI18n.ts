@@ -76,6 +76,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'このランドマークを削除',
     recentlyViewed: '🕘 最近見た停留所',
     closePopup: '✕ 閉じる',
+    viewSolution: '解決方法を見る',
+    retryLocate: '再試行',
+    settingsGuideTitle: '位置情報を有効にする方法',
+    settingsGuideIosBrowser: '1. 「設定」アプリ → 「プライバシーとセキュリティ」→「位置情報サービス」がオフならオンにする\n2. Safariでこのページを開いた状態で、アドレスバーの「あ」または「ぁA」アイコンをタップ → 「Webサイトの設定」→「位置情報」→「許可」を選ぶ\n3. ページを再読み込みしてから下の「再試行」を押す',
+    settingsGuideIosPwa: '1. 「設定」アプリ → 「プライバシーとセキュリティ」→「位置情報サービス」がオフならオンにする\n2. 「設定」アプリの下の方のアプリ一覧からこのアプリを探し、「位置情報」を「Appの使用中のみ許可」にする\n3. アプリに戻り、下の「再試行」を押す',
+    settingsGuideAndroidBrowser: '1. アドレスバー左の錠前または「i」アイコンをタップ →「権限」または「サイトの設定」を開く\n2. 「位置情報」を「許可」に変更する\n3. 端末の「設定」→「位置情報」がオフの場合はオンにする\n4. ページを再読み込みしてから下の「再試行」を押す',
+    settingsGuideAndroidPwa: '1. 端末の「設定」アプリ → 「アプリ」→ このアプリ →「権限」→「位置情報」を「許可」に変更する\n2. 端末の「設定」→「位置情報」がオフの場合はオンにする\n3. アプリに戻り、下の「再試行」を押す',
+    settingsGuideDesktop: '1. アドレスバー左の錠前または「i」アイコンをクリックする\n2. 「位置情報」の権限を「許可」に変更する\n3. ページを再読み込みしてから下の「再試行」を押す\n4. それでも解決しない場合は、パソコン本体（Windows/Mac）の位置情報設定もご確認ください',
     langSelectTitle: '言語を選択'
   },
   en: {
@@ -131,6 +139,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'Delete this landmark',
     recentlyViewed: '🕘 Recently viewed stops',
     closePopup: '✕ Close',
+    viewSolution: 'View solution',
+    retryLocate: 'Retry',
+    settingsGuideTitle: 'How to enable location access',
+    settingsGuideIosBrowser: '1. Open Settings → Privacy & Security → Location Services, and turn it on if it is off\n2. With this page open in Safari, tap the "AA" icon in the address bar → Website Settings → Location → choose "Allow"\n3. Reload the page, then tap "Retry" below',
+    settingsGuideIosPwa: '1. Open Settings → Privacy & Security → Location Services, and turn it on if it is off\n2. In Settings, scroll down to find this app in the app list, then set Location to "While Using the App"\n3. Return to the app and tap "Retry" below',
+    settingsGuideAndroidBrowser: '1. Tap the lock or "i" icon at the left of the address bar → open Permissions or Site settings\n2. Change Location to "Allow"\n3. If your device\'s Settings → Location is off, turn it on\n4. Reload the page, then tap "Retry" below',
+    settingsGuideAndroidPwa: '1. Open your device Settings → Apps → this app → Permissions → set Location to "Allow"\n2. If your device\'s Settings → Location is off, turn it on\n3. Return to the app and tap "Retry" below',
+    settingsGuideDesktop: '1. Click the lock or "i" icon at the left of the address bar\n2. Change the Location permission to "Allow"\n3. Reload the page, then click "Retry" below\n4. If this does not help, also check your computer\'s (Windows/Mac) system location settings',
     langSelectTitle: 'Select language'
   },
   th: {
@@ -186,6 +202,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'ลบจุดสังเกตนี้',
     recentlyViewed: '🕘 ป้ายที่ดูล่าสุด',
     closePopup: '✕ ปิด',
+    viewSolution: 'ดูวิธีแก้ไข',
+    retryLocate: 'ลองใหม่',
+    settingsGuideTitle: 'วิธีเปิดใช้งานตำแหน่ง',
+    settingsGuideIosBrowser: '1. เปิด "การตั้งค่า" → "ความเป็นส่วนตัวและความปลอดภัย" → "บริการหาตำแหน่งที่ตั้ง" หากปิดอยู่ให้เปิด\n2. ขณะเปิดหน้านี้ใน Safari แตะไอคอน "AA" ที่แถบที่อยู่ → "การตั้งค่าเว็บไซต์" → "ตำแหน่งที่ตั้ง" → เลือก "อนุญาต"\n3. โหลดหน้าใหม่ แล้วแตะ "ลองใหม่" ด้านล่าง',
+    settingsGuideIosPwa: '1. เปิด "การตั้งค่า" → "ความเป็นส่วนตัวและความปลอดภัย" → "บริการหาตำแหน่งที่ตั้ง" หากปิดอยู่ให้เปิด\n2. ในการตั้งค่า เลื่อนหาแอปนี้ในรายการแอป แล้วตั้งค่าตำแหน่งที่ตั้งเป็น "ขณะใช้แอป"\n3. กลับไปที่แอปแล้วแตะ "ลองใหม่" ด้านล่าง',
+    settingsGuideAndroidBrowser: '1. แตะไอคอนแม่กุญแจหรือ "i" ทางซ้ายของแถบที่อยู่ → เปิด "สิทธิ์" หรือ "การตั้งค่าเว็บไซต์"\n2. เปลี่ยนตำแหน่งที่ตั้งเป็น "อนุญาต"\n3. หากการตั้งค่าอุปกรณ์ → ตำแหน่งที่ตั้ง ปิดอยู่ ให้เปิด\n4. โหลดหน้าใหม่ แล้วแตะ "ลองใหม่" ด้านล่าง',
+    settingsGuideAndroidPwa: '1. เปิดการตั้งค่าอุปกรณ์ → แอป → แอปนี้ → สิทธิ์ → ตั้งค่าตำแหน่งที่ตั้งเป็น "อนุญาต"\n2. หากการตั้งค่าอุปกรณ์ → ตำแหน่งที่ตั้ง ปิดอยู่ ให้เปิด\n3. กลับไปที่แอปแล้วแตะ "ลองใหม่" ด้านล่าง',
+    settingsGuideDesktop: '1. คลิกไอคอนแม่กุญแจหรือ "i" ทางซ้ายของแถบที่อยู่\n2. เปลี่ยนสิทธิ์ตำแหน่งที่ตั้งเป็น "อนุญาต"\n3. โหลดหน้าใหม่ แล้วคลิก "ลองใหม่" ด้านล่าง\n4. หากยังไม่ได้ผล โปรดตรวจสอบการตั้งค่าตำแหน่งที่ตั้งของคอมพิวเตอร์ (Windows/Mac) ด้วย',
     langSelectTitle: 'เลือกภาษา'
   },
   hi: {
@@ -241,6 +265,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'यह लैंडमार्क हटाएं',
     recentlyViewed: '🕘 हाल ही में देखे गए स्टॉप',
     closePopup: '✕ बंद करें',
+    viewSolution: 'समाधान देखें',
+    retryLocate: 'पुनः प्रयास करें',
+    settingsGuideTitle: 'स्थान एक्सेस सक्षम करने का तरीका',
+    settingsGuideIosBrowser: '1. सेटिंग्स खोलें → गोपनीयता और सुरक्षा → स्थान सेवाएं, अगर बंद है तो चालू करें\n2. Safari में यह पेज खुला रखते हुए, एड्रेस बार में "AA" आइकन टैप करें → वेबसाइट सेटिंग्स → स्थान → "अनुमति दें" चुनें\n3. पेज रीलोड करें, फिर नीचे "पुनः प्रयास करें" टैप करें',
+    settingsGuideIosPwa: '1. सेटिंग्स खोलें → गोपनीयता और सुरक्षा → स्थान सेवाएं, अगर बंद है तो चालू करें\n2. सेटिंग्स में नीचे स्क्रॉल करके ऐप सूची में यह ऐप ढूंढें, फिर स्थान को "ऐप उपयोग के दौरान" पर सेट करें\n3. ऐप पर वापस जाएं और नीचे "पुनः प्रयास करें" टैप करें',
+    settingsGuideAndroidBrowser: '1. एड्रेस बार के बाईं ओर लॉक या "i" आइकन टैप करें → अनुमतियां या साइट सेटिंग्स खोलें\n2. स्थान को "अनुमति दें" में बदलें\n3. यदि डिवाइस सेटिंग्स → स्थान बंद है, तो उसे चालू करें\n4. पेज रीलोड करें, फिर नीचे "पुनः प्रयास करें" टैप करें',
+    settingsGuideAndroidPwa: '1. डिवाइस सेटिंग्स → ऐप्स → यह ऐप → अनुमतियां खोलें → स्थान को "अनुमति दें" पर सेट करें\n2. यदि डिवाइस सेटिंग्स → स्थान बंद है, तो उसे चालू करें\n3. ऐप पर वापस जाएं और नीचे "पुनः प्रयास करें" टैप करें',
+    settingsGuideDesktop: '1. एड्रेस बार के बाईं ओर लॉक या "i" आइकन पर क्लिक करें\n2. स्थान अनुमति को "अनुमति दें" में बदलें\n3. पेज रीलोड करें, फिर नीचे "पुनः प्रयास करें" पर क्लिक करें\n4. यदि इससे समस्या हल न हो, तो अपने कंप्यूटर (Windows/Mac) की स्थान सेटिंग्स भी जांचें',
     langSelectTitle: 'भाषा चुनें'
   },
   es: {
@@ -296,6 +328,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'Eliminar este punto de referencia',
     recentlyViewed: '🕘 Paradas vistas recientemente',
     closePopup: '✕ Cerrar',
+    viewSolution: 'Ver solución',
+    retryLocate: 'Reintentar',
+    settingsGuideTitle: 'Cómo activar el acceso a la ubicación',
+    settingsGuideIosBrowser: '1. Abre Ajustes → Privacidad y seguridad → Servicios de localización, y actívalo si está desactivado\n2. Con esta página abierta en Safari, toca el icono "AA" de la barra de direcciones → Ajustes del sitio web → Ubicación → elige "Permitir"\n3. Recarga la página y luego toca "Reintentar" abajo',
+    settingsGuideIosPwa: '1. Abre Ajustes → Privacidad y seguridad → Servicios de localización, y actívalo si está desactivado\n2. En Ajustes, desplázate hacia abajo para encontrar esta app en la lista y ajusta Ubicación a "Mientras se usa la app"\n3. Vuelve a la app y toca "Reintentar" abajo',
+    settingsGuideAndroidBrowser: '1. Toca el icono de candado o "i" a la izquierda de la barra de direcciones → abre Permisos o Configuración del sitio\n2. Cambia Ubicación a "Permitir"\n3. Si Ajustes → Ubicación del dispositivo está desactivado, actívalo\n4. Recarga la página y luego toca "Reintentar" abajo',
+    settingsGuideAndroidPwa: '1. Abre Ajustes del dispositivo → Aplicaciones → esta app → Permisos → ajusta Ubicación a "Permitir"\n2. Si Ajustes → Ubicación del dispositivo está desactivado, actívalo\n3. Vuelve a la app y toca "Reintentar" abajo',
+    settingsGuideDesktop: '1. Haz clic en el icono de candado o "i" a la izquierda de la barra de direcciones\n2. Cambia el permiso de Ubicación a "Permitir"\n3. Recarga la página y luego haz clic en "Reintentar" abajo\n4. Si esto no soluciona el problema, revisa también la configuración de ubicación de tu ordenador (Windows/Mac)',
     langSelectTitle: 'Seleccionar idioma'
   },
   fr: {
@@ -351,6 +391,14 @@ const messages: Record<Locale, Record<string, string>> = {
     deleteThisLandmark: 'Supprimer ce repère',
     recentlyViewed: '🕘 Arrêts récemment consultés',
     closePopup: '✕ Fermer',
+    viewSolution: 'Voir la solution',
+    retryLocate: 'Réessayer',
+    settingsGuideTitle: 'Comment activer l\u2019accès à la position',
+    settingsGuideIosBrowser: '1. Ouvrez Réglages → Confidentialité et sécurité → Service de localisation, et activez-le s\u2019il est désactivé\n2. Avec cette page ouverte dans Safari, appuyez sur l\u2019icône "AA" de la barre d\u2019adresse → Réglages du site web → Position → choisissez "Autoriser"\n3. Rechargez la page, puis appuyez sur "Réessayer" ci-dessous',
+    settingsGuideIosPwa: '1. Ouvrez Réglages → Confidentialité et sécurité → Service de localisation, et activez-le s\u2019il est désactivé\n2. Dans Réglages, faites défiler pour trouver cette application dans la liste, puis réglez Position sur "Lors de l\u2019utilisation de l\u2019app"\n3. Revenez à l\u2019application et appuyez sur "Réessayer" ci-dessous',
+    settingsGuideAndroidBrowser: '1. Appuyez sur l\u2019icône de cadenas ou "i" à gauche de la barre d\u2019adresse → ouvrez Autorisations ou Paramètres du site\n2. Passez la Position sur "Autoriser"\n3. Si Paramètres → Position de l\u2019appareil est désactivé, activez-le\n4. Rechargez la page, puis appuyez sur "Réessayer" ci-dessous',
+    settingsGuideAndroidPwa: '1. Ouvrez les paramètres de l\u2019appareil → Applications → cette application → Autorisations → réglez Position sur "Autoriser"\n2. Si Paramètres → Position de l\u2019appareil est désactivé, activez-le\n3. Revenez à l\u2019application et appuyez sur "Réessayer" ci-dessous',
+    settingsGuideDesktop: '1. Cliquez sur l\u2019icône de cadenas ou "i" à gauche de la barre d\u2019adresse\n2. Passez l\u2019autorisation de Position sur "Autoriser"\n3. Rechargez la page, puis cliquez sur "Réessayer" ci-dessous\n4. Si cela ne résout pas le problème, vérifiez aussi les paramètres de localisation de votre ordinateur (Windows/Mac)',
     langSelectTitle: 'Choisir la langue'
   }
 }
