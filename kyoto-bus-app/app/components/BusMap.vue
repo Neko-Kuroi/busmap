@@ -177,14 +177,17 @@ let currentOverlayTileLayer = null
 function googleSatelliteTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=s&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.6, minZoom: 9 }
+    // minZoom:15はこのレイヤー単体の描画開始ズームを絞るだけ。マップ全体の
+    // ズーム下限はL.map()初期化時のminZoom:9で別途固定済みなので、
+    // ここでの指定がマップ全体の挙動（初期表示ズーム等）に影響することはない
+    options: { attribution: '© Google', maxZoom: 21, minZoom: 15, opacity: 0.6 }
   }
 }
 
 function googleRoadmapTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=m&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85, minZoom: 9 }
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
   }
 }
 
@@ -193,8 +196,7 @@ const OSM_OVERLAY_JA = {
   options: {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 21,
-    opacity: 0.85,
-    minZoom: 9
+    opacity: 0.85
   }
 }
 
@@ -1494,6 +1496,11 @@ onMounted(async () => {
   map = L.map(mapEl.value, {
     center: [35.011, 135.768],
     zoom: 13,
+    // 明示しないとLeafletがgetMinZoom()を「追加された各レイヤーのminZoomの最大値」
+    // から自動算出してしまう。衛星写真タイル(googleSatelliteTile)にminZoom:15を
+    // 付けているため、ここでマップ全体のminZoomを明示しておかないと、初期表示の
+    // zoom:13がminZoom:15にクランプされてしまう
+    minZoom: 9,
     // デフォルトのズームボタン(左上)は検索パネルの下に隠れて押せなくなるため
     // 無効化し、右下(bottomright)に付け直す。一時的に右側中央付近まで
     // CSSで引き上げていたが、同じコーナーの帰属表示(Leaflet/OSM/Google)まで
