@@ -184,7 +184,7 @@ function googleSatelliteTile(hl) {
 function googleRoadmapTile(hl) {
   return {
     url: `https://mt1.google.com/vt/lyrs=m&hl=${hl}&x={x}&y={y}&z={z}`,
-    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85 }
+    options: { attribution: '© Google', maxZoom: 21, opacity: 0.85, minZoom: 15 }
   }
 }
 
