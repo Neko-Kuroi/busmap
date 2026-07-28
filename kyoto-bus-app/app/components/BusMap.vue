@@ -191,6 +191,24 @@ function googleRoadmapTile(hl) {
   }
 }
 
+function gsiSeamlessPhotoTile() {
+  return {
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
+    options: {
+      attribution: '© 国土地理院',
+      maxZoom: 21,
+      minZoom: 15,
+      opacity: 0.6,
+      // GSIのシームレス写真タイル自体はズームレベル18までしか実データが無いため、
+      // maxZoomをGoogle衛星写真と揃えて21のままにする場合、19〜21はLeafletが
+      // 18のタイルを自動的に拡大表示する（過去のコメントアウト版はmaxZoom:17で
+      // 打ち止めにしていたが、Google衛星写真とズーム比率を揃える今回の方針では
+      // ここを明示してLeafletの拡大表示に委ねる）
+      maxNativeZoom: 18
+    }
+  }
+}
+
 const OSM_OVERLAY_JA = {
   url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   options: {
@@ -205,7 +223,8 @@ const OSM_OVERLAY_JA = {
 // ラベル言語を切り替える
 function tilePresetForLocale(loc) {
   if (loc === 'ja') {
-    return { base: googleSatelliteTile('ja'), overlay: OSM_OVERLAY_JA }
+    // return { base: googleSatelliteTile('ja'), overlay: OSM_OVERLAY_JA }
+    return { base: gsiSeamlessPhotoTile(), overlay: OSM_OVERLAY_JA }
   }
   return { base: googleSatelliteTile(loc), overlay: googleRoadmapTile(loc) }
 }
