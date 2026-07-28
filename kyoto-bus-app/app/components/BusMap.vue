@@ -1714,13 +1714,30 @@ onMounted(async () => {
 
   dataBounds = L.latLngBounds(stops.map(s => [s.lat, s.lng]))
 
+  // baseLayer = (clusteringAvailable && typeof L.markerClusterGroup === 'function')
+  //   ? L.markerClusterGroup({
+  //       chunkedLoading: true,
+  //       maxClusterRadius: 60,
+  //       disableClusteringAtZoom: DISABLE_CLUSTERING_AT_ZOOM,
+  //       spiderfyOnMaxZoom: false,
+  //       showCoverageOnHover: false,
+  //       iconCreateFunction: createClusterIcon
+  //     })
+  //   : L.layerGroup()
   baseLayer = (clusteringAvailable && typeof L.markerClusterGroup === 'function')
     ? L.markerClusterGroup({
         chunkedLoading: true,
-        maxClusterRadius: 60,
+        // 60→80: クラスタ半径を広げてクラスタ数自体を減らし、パン・ズームのたびに
+        // 発生する再クラスタリング計算（内部グリッドの再評価）の対象ノード数を削減する
+        maxClusterRadius: 80,
         disableClusteringAtZoom: DISABLE_CLUSTERING_AT_ZOOM,
         spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
+        // クラスターのズームイン/アウト時、子マーカーがクラスタ中心から
+        // 飛び出す/収束するアニメーションを無効化。4685件規模だとこの
+        // アニメーション計算・DOM再構成のコストが無視できないため、
+        // まずここを切って体感速度を測る
+        animate: false,
         iconCreateFunction: createClusterIcon
       })
     : L.layerGroup()
