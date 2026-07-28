@@ -193,7 +193,8 @@ const OSM_OVERLAY_JA = {
   options: {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 21,
-    opacity: 0.85
+    opacity: 0.85,
+    minZoom: 10
   }
 }
 
