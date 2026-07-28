@@ -68,7 +68,17 @@
           📍 {{ locating ? t('locating') : t('showMyLocation') }}
         </button>
         <p class="geo-unsupported" v-else>{{ t('geoUnsupported') }}</p>
-        <p class="geo-error" v-if="geoError">{{ geoError }}</p>
+        <p class="geo-error" v-if="geoError">
+          {{ geoError }}
+          <button
+            v-if="SETTINGS_GUIDE_ERROR_TYPES.includes(geoErrorType)"
+            class="geo-error-help-btn"
+            type="button"
+            @click="openSettingsGuide"
+          >
+            {{ t('viewSolution') }}
+          </button>
+        </p>
 
         <div class="route-list" v-if="query">
           <button
@@ -123,6 +133,21 @@
             🌐 {{ opt.label }}
           </option>
         </select>
+      </div>
+    </div>
+
+    <!-- 位置情報の権限/設定がOFFの疑いがある時に「解決方法を見る」から開く、
+         OS・ブラウザ別の設定手順モーダル -->
+    <div class="settings-guide-overlay" v-if="settingsGuideOpen" @click.self="closeSettingsGuide">
+      <div class="settings-guide-box">
+        <p class="settings-guide-title">{{ t('settingsGuideTitle') }}</p>
+        <p class="settings-guide-body">{{ t(detectSettingsGuideKey()) }}</p>
+        <div class="settings-guide-actions">
+          <button class="popup-close-btn" type="button" @click="closeSettingsGuide">{{ t('closePopup') }}</button>
+          <button class="settings-guide-retry-btn" type="button" :disabled="locating" @click="retryLocateFromGuide">
+            🔄 {{ locating ? t('locating') : t('retryLocate') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -217,6 +242,11 @@ const selectedRoute = ref(null)
 const geoSupported = ref(false)
 const locating = ref(false)
 const geoError = ref('')
+// geoErrorの翻訳済み文字列だけでは「設定ガイドを出すべきエラーか」を
+// ロケール非依存で判定できないため、エラー種別のキー自体も別途保持する
+const geoErrorType = ref('')
+// 「解決方法を見る」から開く、OS/ブラウザ別の設定手順モーダルの開閉状態
+const settingsGuideOpen = ref(false)
 
 const landmarkAddress = ref('')
 const landmarkError = ref('')
@@ -1027,13 +1057,16 @@ function goToStopPage(coordKey, page) {
 
 function locateUser() {
   geoError.value = ''
+  geoErrorType.value = ''
 
   if (!navigator.geolocation) {
     geoError.value = t('geoNotSupported')
+    geoErrorType.value = 'geoNotSupported'
     return
   }
   if (!dataBounds) {
     geoError.value = t('stopsNotReady')
+    geoErrorType.value = 'stopsNotReady'
     return
   }
 
@@ -1044,6 +1077,7 @@ function locateUser() {
       const { latitude, longitude } = position.coords
       if (!dataBounds.contains([latitude, longitude])) {
         geoError.value = t('outsideKyoto')
+        geoErrorType.value = 'outsideKyoto'
         return
       }
       const L = window.__L
@@ -1061,22 +1095,66 @@ function locateUser() {
         </div>`
       )
       map.setView([latitude, longitude], 15)
+      // 取得に成功したら、直前まで開いていた設定ガイドモーダルは用済みなので閉じる
+      settingsGuideOpen.value = false
     },
     (error) => {
       locating.value = false
       if (error.code === 1) {
         geoError.value = t('geoPermissionDenied')
+        geoErrorType.value = 'geoPermissionDenied'
       } else if (error.code === 2) {
         geoError.value = t('geoUnavailable')
+        geoErrorType.value = 'geoUnavailable'
       } else if (error.code === 3) {
         geoError.value = t('geoTimeout')
+        geoErrorType.value = 'geoTimeout'
       } else {
         geoError.value = t('geoFail')
+        geoErrorType.value = 'geoFail'
       }
       console.error(t('geoFailLog'), error)
     },
     { enableHighAccuracy: true, timeout: 10000 }
   )
+}
+
+// 「解決方法を見る」リンクを出すべきエラー種別。位置情報サービス自体がOFF、
+// または既に恒久的に権限拒否されている場合に典型的な2種類に絞る
+// （geoNotSupportedは端末側で直しようがない、geoTimeout/geoFailは電波・GPS要因の
+// 可能性が高く設定ガイドとは無関係なため対象外）
+const SETTINGS_GUIDE_ERROR_TYPES = ['geoPermissionDenied', 'geoUnavailable']
+
+function openSettingsGuide() {
+  settingsGuideOpen.value = true
+}
+
+function closeSettingsGuide() {
+  settingsGuideOpen.value = false
+}
+
+// 設定手順モーダル内の「再試行」ボタン。locateUser()を再実行し、
+// 成功すればlocateUser内でモーダルは自動的に閉じる
+function retryLocateFromGuide() {
+  locateUser()
+}
+
+// OS・ブラウザ・インストール形態（通常タブ/ホーム画面PWA）に応じて
+// 表示すべき設定手順の翻訳キーを選ぶ。判定はUser-Agentベースの簡易分岐のため
+// 完全ではないが、代表的な組み合わせはカバーできる
+function detectSettingsGuideKey() {
+  if (typeof navigator === 'undefined') return 'settingsGuideDesktop'
+  const ua = navigator.userAgent || ''
+  const isIOS = /iP(hone|ad|od)/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isAndroid = /Android/.test(ua)
+  const isStandalone =
+    (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true
+
+  if (isIOS) return isStandalone ? 'settingsGuideIosPwa' : 'settingsGuideIosBrowser'
+  if (isAndroid) return isStandalone ? 'settingsGuideAndroidPwa' : 'settingsGuideAndroidBrowser'
+  return 'settingsGuideDesktop'
 }
 
 let closeTimer = null
@@ -1794,6 +1872,81 @@ onMounted(async () => {
   margin: 5px 0 0;
   font-size: 11px;
   color: #dc2626;
+}
+
+.geo-error-help-btn {
+  display: inline-block;
+  margin-left: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #1d4ed8;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.geo-error-help-btn:hover {
+  color: #1e40af;
+}
+
+.settings-guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.settings-guide-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  width: min(340px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.settings-guide-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.settings-guide-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #333;
+  /* messages辞書内の\nを見た目上の改行として反映する */
+  white-space: pre-line;
+}
+
+.settings-guide-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.settings-guide-retry-btn {
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.settings-guide-retry-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .route-list {
