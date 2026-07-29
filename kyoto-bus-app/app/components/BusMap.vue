@@ -1098,6 +1098,24 @@ function renderSavedStops() {
   })
 }
 
+// 停留所ポップアップ内の「📍記録する」ボタンは、その場のHTML文字列として
+// bindPopup()で1回だけ焼き込まれるため、後から保存/削除してalreadySavedの
+// 判定結果が変わっても、既に開かれた（or 過去に開かれてバインド済みの）
+// ポップアップの中身は自動更新されない。addSavedStop/removeSavedStopの
+// 直後に必ずこれを呼び、対象stopIdの黄色ドット・星どちらのポップアップも
+// 作り直す（開いている最中でもsetPopupContentは即座に反映される）
+function refreshStopPopupForStopId(stopId) {
+  const stop = stopsById[stopId]
+  if (!stop) return
+  const coordKey = coordKeyOf(stop.lat, stop.lng)
+  const entry = groupsByCoordKey[coordKey]
+  if (!entry) return
+  const page = groupPageByCoord[coordKey] || 0
+  const html = buildGroupedPopupHtml(coordKey, page)
+  if (entry.baseMarker) entry.baseMarker.setPopupContent(html)
+  if (entry.starMarker) entry.starMarker.setPopupContent(html)
+}
+
 // 停留所ポップアップの「📍記録する」ボタンから呼ばれる。同じstopIdは
 // 二重記録しない（ボタン自体もalreadySavedの間は出さないが、念のため関数側でも防ぐ）
 function addSavedStop(stopId, name) {
@@ -1113,14 +1131,17 @@ function addSavedStop(stopId, name) {
   savedStops.value.push(saved)
   saveSavedStopsToStorage()
   renderSavedStops()
+  refreshStopPopupForStopId(stopId)
 
   if (map) map.closePopup()
 }
 
 function removeSavedStop(id) {
+  const removed = savedStops.value.find(s => s.id === id)
   savedStops.value = savedStops.value.filter(s => s.id !== id)
   saveSavedStopsToStorage()
   renderSavedStops()
+  if (removed) refreshStopPopupForStopId(removed.stopId)
 }
 
 function loadHistoryFromStorage() {
