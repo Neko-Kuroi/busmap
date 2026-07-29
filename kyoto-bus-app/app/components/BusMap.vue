@@ -2805,13 +2805,12 @@ onMounted(async () => {
   display: block;
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.25);
-  border: 1px solid rgba(250, 230, 200, 0.65);
-  box-shadow: 0 0 3px rgba(40, 40, 40, 0.4);
+  border: 1px solid rgba(250, 230, 200, 0.75);
   
   text-align: center;
   font-weight: 700;
   font-size: 12px;
-  color: #f5ff66;
+  color: #f5ff77;
 }
 
 :deep(.user-location-icon) {
