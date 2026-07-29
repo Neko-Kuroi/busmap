@@ -2653,7 +2653,7 @@ onMounted(async () => {
 /* 停留所を記録するボタン。マーカーの黄緑色(#84cc16)と揃えた配色にする */
 :deep(.record-stop-btn) {
   border: none;
-  background: #65a30d;
+  background: "#84cc16;
   color: white;
   border-radius: 4px;
   padding: 4px 8px;
