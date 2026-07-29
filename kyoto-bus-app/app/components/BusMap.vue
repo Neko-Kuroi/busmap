@@ -2762,7 +2762,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: #eaff00;
   border: 3px solid #fff; /*#d4e100;*/
-  /* box-shadow: 0 0 3px rgba(0, 0, 0, 0.6); */ /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
+  box-shadow: 0 0 3px rgba(10, 10, 10, 0.6); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
 }
 
 :deep(.stop-cluster-icon) {
@@ -2775,6 +2775,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.25);
   border: 1px solid rgba(250, 230, 200, 0.65);
+  box-shadow: 0 0 3px rgba(10, 10, 10, 0.6);
   
   text-align: center;
   font-weight: 700;
@@ -3053,7 +3054,7 @@ onMounted(async () => {
 /* 画面最下部に表示されるタイル提供元の著作権表示。デフォルトのままだと
    地図に対して目立ちすぎるため小さくする */
 :deep(.leaflet-control-attribution) {
-  font-size: 9px;
+  font-size: 8px;
 }
 
 /* Leaflet標準の.leaflet-popup-contentは margin: 13px 24px 13px 20px 相当と余白が
@@ -3084,7 +3085,7 @@ onMounted(async () => {
    ズームボタンの実際の高さが変わった場合はここも調整が必要 */
 .corner-logo {
   position: absolute;
-  opacity: 0.75;
+  opacity: 0.65;
   right: 0px;
   bottom: 110px;
   width: 120px;
