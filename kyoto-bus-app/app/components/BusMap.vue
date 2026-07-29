@@ -33,6 +33,14 @@
             </button>
           </form>
           <p class="landmark-error" v-if="landmarkError">{{ landmarkError }}</p>
+          <button
+            v-if="landmarkError"
+            class="popup-close-btn landmark-clear-btn"
+            type="button"
+            @click="clearLandmarkInput"
+          >
+            {{ t('clearBtn') }}
+          </button>
           <p class="landmark-count" v-if="landmarks.length">{{ t('landmarkCount', { count: landmarks.length, limit: LANDMARK_LIMIT }) }}</p>
         </div>
       </div>
@@ -70,24 +78,26 @@
           📍 {{ locating ? t('locating') : t('showMyLocation') }}
         </button>
         <p class="geo-unsupported" v-else>{{ t('geoUnsupported') }}</p>
-        <p class="geo-error" v-if="geoError">
-          {{ geoError }}
-          <button
-            v-if="SETTINGS_GUIDE_ERROR_TYPES.includes(geoErrorType)"
-            class="geo-error-help-btn"
-            type="button"
-            @click="openSettingsGuide"
-          >
-            {{ t('viewSolution') }}
-          </button>
-          <button
-            class="popup-close-btn geo-error-dismiss-btn"
-            type="button"
-            @click="dismissGeoError"
-          >
-            {{ t('closePopup') }}
-          </button>
-        </p>
+        <div class="geo-error-panel" v-if="geoError">
+          <p class="geo-error">
+            {{ geoError }}
+            <button
+              v-if="SETTINGS_GUIDE_ERROR_TYPES.includes(geoErrorType)"
+              class="geo-error-help-btn"
+              type="button"
+              @click="openSettingsGuide"
+            >
+              {{ t('viewSolution') }}
+            </button>
+            <button
+              class="popup-close-btn geo-error-dismiss-btn"
+              type="button"
+              @click="dismissGeoError"
+            >
+              {{ t('closePopup') }}
+            </button>
+          </p>
+        </div>
 
         <div class="route-list" v-if="query">
           <button
@@ -1303,6 +1313,13 @@ function dismissGeoError() {
   geoErrorType.value = ''
 }
 
+// ランドマーク追加失敗時：エラーメッセージ・入力済み住所・クリアボタン自身を
+// まとめて消し、タブの縦幅が余計に伸びたままにならないようにする
+function clearLandmarkInput() {
+  landmarkError.value = ''
+  landmarkAddress.value = ''
+}
+
 function closeSettingsGuide() {
   settingsGuideOpen.value = false
   dismissGeoError()
@@ -2097,8 +2114,18 @@ onMounted(async () => {
   color: #888;
 }
 
+/* 背景色・透過度は履歴ウィジェット(.history-panel)に合わせ、角丸・影は
+   検索ウィジット内の他パネル(.route-item)に合わせる */
+.geo-error-panel {
+  margin-top: 5px;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  padding: 5px 7px;
+}
+
 .geo-error {
-  margin: 5px 0 0;
+  margin: 0;
   font-size: 11px;
   color: #dc2626;
 }
@@ -2395,6 +2422,10 @@ onMounted(async () => {
   color: #dc2626;
 }
 
+.landmark-clear-btn {
+  margin-top: 4px;
+}
+
 .landmark-count {
   margin: 6px 0 0;
   font-size: 11px;
@@ -2402,7 +2433,7 @@ onMounted(async () => {
 }
 
 .history-panel {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.75);
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -2780,7 +2811,7 @@ onMounted(async () => {
   text-align: center;
   font-weight: 700;
   font-size: 12px;
-  color: #eaff00;
+  color: #f5ff66;
 }
 
 :deep(.user-location-icon) {
