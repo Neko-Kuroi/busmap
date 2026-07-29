@@ -3085,8 +3085,8 @@ onMounted(async () => {
 .corner-logo {
   position: absolute;
   opacity: 0.75;
-  right:.. 20px;
-  bottom: 120px;
+  right:.. 0px;
+  bottom: 100px;
   width: 120px;
   height: auto;
   z-index: 1000;
