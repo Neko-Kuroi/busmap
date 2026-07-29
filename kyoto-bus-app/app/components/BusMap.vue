@@ -2762,7 +2762,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: #eaff00;
   border: 3px solid #fff; /*#d4e100;*/
-  box-shadow: 0 0 3px rgba(10, 10, 10, 0.6); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
+  box-shadow: 0 0 3px rgba(40, 40, 40, 0.4); /* 描画負荷軽減のため無効化 ? BASE_OPACITY も参照 */
 }
 
 :deep(.stop-cluster-icon) {
@@ -2775,7 +2775,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: rgba(234, 255, 0, 0.25);
   border: 1px solid rgba(250, 230, 200, 0.65);
-  box-shadow: 0 0 3px rgba(10, 10, 10, 0.6);
+  box-shadow: 0 0 3px rgba(40, 40, 40, 0.4);
   
   text-align: center;
   font-weight: 700;
