@@ -1997,15 +1997,13 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-/* iPhoneなど縦の表示領域が狭い画面では、検索結果が多いと地図を覆い隠して
+/* iPhoneなど表示領域が狭い画面では、検索結果が多いと地図を覆い隠して
    しまうため1行ぶんだけ見せてスクロールにする。10インチタブレットなど
-   高さに余裕がある画面（このmax-heightに掛からない）では従来通り複数行
-   表示のままにする */
-/* iPhoneは縦持ちでも高さは900px超あることが多く、max-heightでは
-   判定できない（実機検証で確認）。横幅で判定する：iPhoneは縦持ちで
-   幅450px程度、10インチタブレットは700px超えが普通なので、
-   max-width: 600pxを閾値にする */
-@media (max-width: 600px) {
+   幅・高さともに余裕がある画面では従来通り複数行表示のままにする。
+   幅だけ・高さだけで判定すると、画面回転時に片方だけ大きくなる
+   ケース（例: 横向きの976×450）で正しく判定できない（実機検証で確認）。
+   縦横どちらか一方でも基準未満ならコンパクト表示（OR条件）とする */
+@media (max-width: 600px), (max-height: 600px) {
   .route-list {
     /* route-itemは系統名・事業者名・マッチ停留所バッジで最大3行になりうる
        ため、1行ぶんでも60px程度は確保し、項目の途中で見切れないようにする */
@@ -2242,8 +2240,9 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-/* route-list側と同じ理由でmax-widthに統一する */
-@media (max-width: 600px) {
+/* route-list側と同じ理由・同じOR条件（幅・高さどちらか一方でも
+   狭ければコンパクト表示）にする */
+@media (max-width: 600px), (max-height: 600px) {
   .history-list {
     /* history-itemは1行構成(約26px)なので、1行ぶんだけ見せる */
     max-height: 30px;
@@ -2405,14 +2404,16 @@ onMounted(async () => {
 
 /* Google Maps埋め込みiframeのサイズ。HTML属性側は200のままにしてあるが、
    CSSの方が優先されるのでここで実際の表示サイズを決める。iPhoneなど
-   幅の狭い画面では200のまま、10インチタブレットなど幅に余裕がある画面
-   では300に広げる（scroll対策のmax-heightとは別に、横幅で判定する） */
+   幅の狭い画面では200のまま、10インチタブレットなど幅・高さともに
+   余裕がある画面では300に広げる。幅だけで判定すると画面回転時に
+   正しく判定できないため、縦横どちらも基準を超えた時だけ大画面と
+   判断する（AND条件） */
 :deep(.landmark-streetview iframe) {
   width: 200px;
   height: 200px;
 }
 
-@media (min-width: 601px) {
+@media (min-width: 601px) and (min-height: 601px) {
   :deep(.landmark-streetview iframe) {
     width: 300px;
     height: 300px;
@@ -2746,13 +2747,13 @@ onMounted(async () => {
   margin-top: 6px;
 }
 
-/* landmark-streetview側と同じ理由・同じサイズ設定で統一する */
+/* landmark-streetview側と同じ理由・同じサイズ設定・同じAND条件で統一する */
 :deep(.stop-streetview iframe) {
   width: 200px;
   height: 200px;
 }
 
-@media (min-width: 601px) {
+@media (min-width: 601px) and (min-height: 601px) {
   :deep(.stop-streetview iframe) {
     width: 300px;
     height: 300px;
