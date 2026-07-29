@@ -1,6 +1,8 @@
 <template>
+  <!-- <div class="map-wrap" :dir="isRtl ? 'rtl' : 'ltr'">
+    <div id="map" ref="mapEl"></div> -->
   <div class="map-wrap" :dir="isRtl ? 'rtl' : 'ltr'">
-    <div id="map" ref="mapEl"></div>
+    <div id="map" ref="mapEl" dir="ltr"></div>
 
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
     <img src="/logobus.webp" alt="" class="corner-logo" />
@@ -3089,5 +3091,13 @@ onMounted(async () => {
   height: auto;
   z-index: 1000;
   pointer-events: none;
+}
+
+/* Leaflet生成物の位置計算は常にLTRで固定。
+   文字表示だけ祖先の dir="rtl" を見て個別に反転させる */
+.map-wrap[dir="rtl"] :deep(.leaflet-tooltip),
+.map-wrap[dir="rtl"] :deep(.leaflet-popup-content) {
+  direction: rtl;
+  text-align: right;
 }
 </style>
