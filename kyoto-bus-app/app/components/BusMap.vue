@@ -79,12 +79,11 @@
             {{ t('viewSolution') }}
           </button>
           <button
-            class="geo-error-dismiss-btn"
+            class="popup-close-btn geo-error-dismiss-btn"
             type="button"
-            :aria-label="t('closePopup')"
             @click="dismissGeoError"
           >
-            ✕
+            {{ t('closePopup') }}
           </button>
         </p>
 
@@ -1087,6 +1086,14 @@ function renderSavedStops() {
     const marker = L.marker([stop.lat, stop.lng], { icon: createSavedStopIcon(), bubblingMouseEvents: false })
     marker.bindPopup(buildSavedStopPopupHtml(saved, idx + 1), { maxWidth: 300 })
     bindHoverPopup(marker)
+    // 星マーカー(.stop-mini-tooltip)と同じ考え方：ホバーしなくても地図上で
+    // どの停留所を記録したものか分かるよう、常時表示のラベルを付ける
+    marker.bindTooltip(escapeHtml(displayStopName(stop)), {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -SAVED_STOP_ICON_H / 2],
+      className: 'saved-stop-tooltip'
+    })
     marker.addTo(savedStopLayer)
   })
 }
@@ -2092,17 +2099,7 @@ onMounted(async () => {
 .geo-error-dismiss-btn {
   display: inline-block;
   margin-left: 4px;
-  border: none;
-  background: none;
-  padding: 0 2px;
-  color: #dc2626;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.geo-error-dismiss-btn:hover {
-  color: #991b1b;
+  vertical-align: middle;
 }
 
 .settings-guide-overlay {
@@ -2576,9 +2573,9 @@ onMounted(async () => {
 :deep(.landmark-delete-btn),
 :deep(.pin-delete-btn),
 :deep(.saved-stop-delete-btn) {
-  border: none;
-  background: #dc2626;
-  color: white;
+  border: 1px solid #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 12px;
@@ -2586,13 +2583,17 @@ onMounted(async () => {
 }
 
 :deep(.pin-record-btn) {
-  border: none;
-  background: #2563eb;
-  color: white;
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+:deep(.pin-record-btn:hover) {
+  background: #dbeafe;
 }
 
 /* 停留所を記録するボタン。マーカーの黄緑色(#84cc16)と揃えた配色にする */
@@ -2628,6 +2629,8 @@ onMounted(async () => {
   }
 }
 
+/* 停留所ポップアップの.stop-external-linksと同じ考え方で、約2件ぶんの
+   高さを超えたら縦スクロールにして、ポップアップの縦幅を抑える */
 :deep(.landmark-external-links) {
   margin-top: 6px;
   padding-top: 4px;
@@ -2635,6 +2638,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 32px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 :deep(.landmark-external-links a) {
@@ -2648,8 +2654,9 @@ onMounted(async () => {
 }
 
 :deep(.landmark-delete-btn:hover),
-:deep(.pin-delete-btn:hover) {
-  background: #b91c1c;
+:deep(.pin-delete-btn:hover),
+:deep(.saved-stop-delete-btn:hover) {
+  background: #fee2e2;
 }
 
 :deep(.stop-star-icon) {
@@ -2799,6 +2806,22 @@ onMounted(async () => {
   white-space: nowrap;
   background: #fff;
   border-color: #fff;
+}
+
+/* 記録した停留所(緑アイコン)の常時ラベル。アイコンの色(#84cc16)に
+   合わせた枠線にして、星マーカーの白ラベルと見分けられるようにする */
+:deep(.saved-stop-tooltip) {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: #fff;
+  border-color: #84cc16;
+  color: #3f6212;
+}
+
+:deep(.saved-stop-tooltip)::before {
+  border-top-color: #84cc16;
 }
 
 :deep(.stop-mini-name) {
@@ -3002,6 +3025,12 @@ onMounted(async () => {
 :deep(.leaflet-popup-content-wrapper) {
   background: rgba(255, 255, 255, 0.75);   /* 0.75の数値を下げるほど透明に */
   backdrop-filter: blur(2px);              /* 任意：すりガラス風にしたい場合 */
+}
+
+/* 画面最下部に表示されるタイル提供元の著作権表示。デフォルトのままだと
+   地図に対して目立ちすぎるため小さくする */
+:deep(.leaflet-control-attribution) {
+  font-size: 9px;
 }
 
 /* Leaflet標準の.leaflet-popup-contentは margin: 13px 24px 13px 20px 相当と余白が
