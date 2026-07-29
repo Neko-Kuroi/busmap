@@ -2810,7 +2810,7 @@ onMounted(async () => {
   text-align: center;
   font-weight: 700;
   font-size: 12px;
-  color: #f5ff77;
+  color: #f9ffa3;
 }
 
 :deep(.user-location-icon) {
