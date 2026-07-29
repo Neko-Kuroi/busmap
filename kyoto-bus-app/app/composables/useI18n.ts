@@ -95,7 +95,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. アドレスバー左の錠前または「i」アイコンをタップ →「権限」または「サイトの設定」を開く\n2. 「位置情報」を「許可」に変更する\n3. 端末の「設定」→「位置情報」がオフの場合はオンにする\n4. ページを再読み込みしてから下の「再試行」を押す',
     settingsGuideAndroidPwa: '1. 端末の「設定」アプリ → 「アプリ」→ このアプリ →「権限」→「位置情報」を「許可」に変更する\n2. 端末の「設定」→「位置情報」がオフの場合はオンにする\n3. アプリに戻り、下の「再試行」を押す',
     settingsGuideDesktop: '1. アドレスバー左の錠前または「i」アイコンをクリックする\n2. 「位置情報」の権限を「許可」に変更する\n3. ページを再読み込みしてから下の「再試行」を押す\n4. それでも解決しない場合は、パソコン本体（Windows/Mac）の位置情報設定もご確認ください',
-    langSelectTitle: '言語を選択'
+    langSelectTitle: '言語を選択',
+    recordStopBtn: '📍 記録する',
+    savedStopPopupTitle: '📍 記録した停留所 #{number}',
+    savedStopLimit: '記録できる停留所は{limit}件までです。削除してから追加してください',
+    deleteThisSavedStop: 'この記録を削除',
+    savedStopLoadFail: '記録した停留所の読み込みに失敗したにゃ:',
+    savedStopSaveFail: '記録した停留所の保存に失敗したにゃ:'
   },
   en: {
     loadingStops: 'Loading stop data…',
@@ -158,7 +164,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Tap the lock or "i" icon at the left of the address bar → open Permissions or Site settings\n2. Change Location to "Allow"\n3. If your device\'s Settings → Location is off, turn it on\n4. Reload the page, then tap "Retry" below',
     settingsGuideAndroidPwa: '1. Open your device Settings → Apps → this app → Permissions → set Location to "Allow"\n2. If your device\'s Settings → Location is off, turn it on\n3. Return to the app and tap "Retry" below',
     settingsGuideDesktop: '1. Click the lock or "i" icon at the left of the address bar\n2. Change the Location permission to "Allow"\n3. Reload the page, then click "Retry" below\n4. If this does not help, also check your computer\'s (Windows/Mac) system location settings',
-    langSelectTitle: 'Select language'
+    langSelectTitle: 'Select language',
+    recordStopBtn: '📍 Save',
+    savedStopPopupTitle: '📍 Saved Stop #{number}',
+    savedStopLimit: 'You can save up to {limit} stops. Please delete one before adding another.',
+    deleteThisSavedStop: 'Delete this saved stop',
+    savedStopLoadFail: 'Failed to load saved stops:',
+    savedStopSaveFail: 'Failed to save saved stops:'
   },
   th: {
     loadingStops: 'กำลังโหลดข้อมูลป้ายรถเมล์…',
@@ -221,7 +233,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. แตะไอคอนแม่กุญแจหรือ "i" ทางซ้ายของแถบที่อยู่ → เปิด "สิทธิ์" หรือ "การตั้งค่าเว็บไซต์"\n2. เปลี่ยนตำแหน่งที่ตั้งเป็น "อนุญาต"\n3. หากการตั้งค่าอุปกรณ์ → ตำแหน่งที่ตั้ง ปิดอยู่ ให้เปิด\n4. โหลดหน้าใหม่ แล้วแตะ "ลองใหม่" ด้านล่าง',
     settingsGuideAndroidPwa: '1. เปิดการตั้งค่าอุปกรณ์ → แอป → แอปนี้ → สิทธิ์ → ตั้งค่าตำแหน่งที่ตั้งเป็น "อนุญาต"\n2. หากการตั้งค่าอุปกรณ์ → ตำแหน่งที่ตั้ง ปิดอยู่ ให้เปิด\n3. กลับไปที่แอปแล้วแตะ "ลองใหม่" ด้านล่าง',
     settingsGuideDesktop: '1. คลิกไอคอนแม่กุญแจหรือ "i" ทางซ้ายของแถบที่อยู่\n2. เปลี่ยนสิทธิ์ตำแหน่งที่ตั้งเป็น "อนุญาต"\n3. โหลดหน้าใหม่ แล้วคลิก "ลองใหม่" ด้านล่าง\n4. หากยังไม่ได้ผล โปรดตรวจสอบการตั้งค่าตำแหน่งที่ตั้งของคอมพิวเตอร์ (Windows/Mac) ด้วย',
-    langSelectTitle: 'เลือกภาษา'
+    langSelectTitle: 'เลือกภาษา',
+    recordStopBtn: '📍 บันทึก',
+    savedStopPopupTitle: '📍 ป้ายที่บันทึก #{number}',
+    savedStopLimit: 'คุณสามารถบันทึกป้ายได้สูงสุด {limit} รายการ กรุณาลบรายการหนึ่งก่อนเพิ่มใหม่',
+    deleteThisSavedStop: 'ลบรายการที่บันทึกนี้',
+    savedStopLoadFail: 'โหลดป้ายที่บันทึกไม่สำเร็จ:',
+    savedStopSaveFail: 'บันทึกป้ายไม่สำเร็จ:'
   },
   hi: {
     loadingStops: 'स्टॉप डेटा लोड हो रहा है…',
@@ -284,7 +302,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. एड्रेस बार के बाईं ओर लॉक या "i" आइकन टैप करें → अनुमतियां या साइट सेटिंग्स खोलें\n2. स्थान को "अनुमति दें" में बदलें\n3. यदि डिवाइस सेटिंग्स → स्थान बंद है, तो उसे चालू करें\n4. पेज रीलोड करें, फिर नीचे "पुनः प्रयास करें" टैप करें',
     settingsGuideAndroidPwa: '1. डिवाइस सेटिंग्स → ऐप्स → यह ऐप → अनुमतियां खोलें → स्थान को "अनुमति दें" पर सेट करें\n2. यदि डिवाइस सेटिंग्स → स्थान बंद है, तो उसे चालू करें\n3. ऐप पर वापस जाएं और नीचे "पुनः प्रयास करें" टैप करें',
     settingsGuideDesktop: '1. एड्रेस बार के बाईं ओर लॉक या "i" आइकन पर क्लिक करें\n2. स्थान अनुमति को "अनुमति दें" में बदलें\n3. पेज रीलोड करें, फिर नीचे "पुनः प्रयास करें" पर क्लिक करें\n4. यदि इससे समस्या हल न हो, तो अपने कंप्यूटर (Windows/Mac) की स्थान सेटिंग्स भी जांचें',
-    langSelectTitle: 'भाषा चुनें'
+    langSelectTitle: 'भाषा चुनें',
+    recordStopBtn: '📍 सहेजें',
+    savedStopPopupTitle: '📍 सहेजा गया स्टॉप #{number}',
+    savedStopLimit: 'आप अधिकतम {limit} स्टॉप सहेज सकते हैं। नया जोड़ने से पहले कृपया एक हटाएं।',
+    deleteThisSavedStop: 'यह सहेजा गया स्टॉप हटाएं',
+    savedStopLoadFail: 'सहेजे गए स्टॉप लोड करने में विफल:',
+    savedStopSaveFail: 'सहेजे गए स्टॉप सहेजने में विफल:'
   },
   es: {
     loadingStops: 'Cargando datos de paradas…',
@@ -347,7 +371,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Toca el icono de candado o "i" a la izquierda de la barra de direcciones → abre Permisos o Configuración del sitio\n2. Cambia Ubicación a "Permitir"\n3. Si Ajustes → Ubicación del dispositivo está desactivado, actívalo\n4. Recarga la página y luego toca "Reintentar" abajo',
     settingsGuideAndroidPwa: '1. Abre Ajustes del dispositivo → Aplicaciones → esta app → Permisos → ajusta Ubicación a "Permitir"\n2. Si Ajustes → Ubicación del dispositivo está desactivado, actívalo\n3. Vuelve a la app y toca "Reintentar" abajo',
     settingsGuideDesktop: '1. Haz clic en el icono de candado o "i" a la izquierda de la barra de direcciones\n2. Cambia el permiso de Ubicación a "Permitir"\n3. Recarga la página y luego haz clic en "Reintentar" abajo\n4. Si esto no soluciona el problema, revisa también la configuración de ubicación de tu ordenador (Windows/Mac)',
-    langSelectTitle: 'Seleccionar idioma'
+    langSelectTitle: 'Seleccionar idioma',
+    recordStopBtn: '📍 Guardar',
+    savedStopPopupTitle: '📍 Parada guardada n.º {number}',
+    savedStopLimit: 'Puedes guardar hasta {limit} paradas. Elimina una antes de añadir otra.',
+    deleteThisSavedStop: 'Eliminar esta parada guardada',
+    savedStopLoadFail: 'Error al cargar las paradas guardadas:',
+    savedStopSaveFail: 'Error al guardar las paradas guardadas:'
   },
   fr: {
     loadingStops: "Chargement des données d'arrêts…",
@@ -410,7 +440,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Appuyez sur l\u2019icône de cadenas ou "i" à gauche de la barre d\u2019adresse → ouvrez Autorisations ou Paramètres du site\n2. Passez la Position sur "Autoriser"\n3. Si Paramètres → Position de l\u2019appareil est désactivé, activez-le\n4. Rechargez la page, puis appuyez sur "Réessayer" ci-dessous',
     settingsGuideAndroidPwa: '1. Ouvrez les paramètres de l\u2019appareil → Applications → cette application → Autorisations → réglez Position sur "Autoriser"\n2. Si Paramètres → Position de l\u2019appareil est désactivé, activez-le\n3. Revenez à l\u2019application et appuyez sur "Réessayer" ci-dessous',
     settingsGuideDesktop: '1. Cliquez sur l\u2019icône de cadenas ou "i" à gauche de la barre d\u2019adresse\n2. Passez l\u2019autorisation de Position sur "Autoriser"\n3. Rechargez la page, puis cliquez sur "Réessayer" ci-dessous\n4. Si cela ne résout pas le problème, vérifiez aussi les paramètres de localisation de votre ordinateur (Windows/Mac)',
-    langSelectTitle: 'Choisir la langue'
+    langSelectTitle: 'Choisir la langue',
+    recordStopBtn: '📍 Enregistrer',
+    savedStopPopupTitle: '📍 Arrêt enregistré n° {number}',
+    savedStopLimit: 'Vous pouvez enregistrer jusqu\u2019à {limit} arrêts. Supprimez-en un avant d\u2019en ajouter un autre.',
+    deleteThisSavedStop: 'Supprimer cet arrêt enregistré',
+    savedStopLoadFail: 'Échec du chargement des arrêts enregistrés :',
+    savedStopSaveFail: 'Échec de l\u2019enregistrement des arrêts enregistrés :'
   },
   'zh-TW': {
     loadingStops: '正在載入站牌資料…',
@@ -473,7 +509,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. 點擊網址列左側的鎖頭或「i」圖示 → 開啟「權限」或「網站設定」\n2. 將「位置」變更為「允許」\n3. 若裝置的「設定」→「位置資訊」已關閉，請開啟\n4. 重新載入頁面後，點擊下方的「重試」',
     settingsGuideAndroidPwa: '1. 開啟裝置的「設定」→「應用程式」→ 此App →「權限」→ 將「位置」設為「允許」\n2. 若裝置的「設定」→「位置資訊」已關閉，請開啟\n3. 返回App後點擊下方的「重試」',
     settingsGuideDesktop: '1. 點擊網址列左側的鎖頭或「i」圖示\n2. 將「位置」權限變更為「允許」\n3. 重新載入頁面後，點擊下方的「重試」\n4. 若仍無法解決，請確認電腦（Windows/Mac）本身的定位設定',
-    langSelectTitle: '選擇語言'
+    langSelectTitle: '選擇語言',
+    recordStopBtn: '📍 儲存',
+    savedStopPopupTitle: '📍 已儲存站牌 #{number}',
+    savedStopLimit: '最多可儲存 {limit} 個站牌，請先刪除一個再新增',
+    deleteThisSavedStop: '刪除此儲存站牌',
+    savedStopLoadFail: '載入已儲存站牌失敗：',
+    savedStopSaveFail: '儲存站牌失敗：'
   },
   vi: {
     loadingStops: 'Đang tải dữ liệu điểm dừng…',
@@ -536,7 +578,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Chạm biểu tượng ổ khóa hoặc "i" bên trái thanh địa chỉ → mở Quyền hoặc Cài đặt trang web\n2. Đổi Vị trí thành "Cho phép"\n3. Nếu Cài đặt → Vị trí của thiết bị đang tắt, hãy bật lên\n4. Tải lại trang, sau đó chạm "Thử lại" bên dưới',
     settingsGuideAndroidPwa: '1. Mở Cài đặt thiết bị → Ứng dụng → ứng dụng này → Quyền → đặt Vị trí thành "Cho phép"\n2. Nếu Cài đặt → Vị trí của thiết bị đang tắt, hãy bật lên\n3. Quay lại ứng dụng và chạm "Thử lại" bên dưới',
     settingsGuideDesktop: '1. Nhấp biểu tượng ổ khóa hoặc "i" bên trái thanh địa chỉ\n2. Đổi quyền Vị trí thành "Cho phép"\n3. Tải lại trang, sau đó nhấp "Thử lại" bên dưới\n4. Nếu vẫn không được, hãy kiểm tra cả cài đặt vị trí của máy tính (Windows/Mac)',
-    langSelectTitle: 'Chọn ngôn ngữ'
+    langSelectTitle: 'Chọn ngôn ngữ',
+    recordStopBtn: '📍 Lưu',
+    savedStopPopupTitle: '📍 Điểm dừng đã lưu #{number}',
+    savedStopLimit: 'Bạn có thể lưu tối đa {limit} điểm dừng. Vui lòng xóa một điểm trước khi thêm mới.',
+    deleteThisSavedStop: 'Xóa điểm dừng đã lưu này',
+    savedStopLoadFail: 'Không tải được các điểm dừng đã lưu:',
+    savedStopSaveFail: 'Không lưu được điểm dừng:'
   },
   id: {
     loadingStops: 'Memuat data halte…',
@@ -599,7 +647,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Ketuk ikon gembok atau "i" di sebelah kiri bilah alamat → buka "Izin" atau "Pengaturan Situs"\n2. Ubah Lokasi menjadi "Izinkan"\n3. Jika Pengaturan perangkat → Lokasi masih nonaktif, aktifkan\n4. Muat ulang halaman, lalu ketuk "Coba lagi" di bawah',
     settingsGuideAndroidPwa: '1. Buka Pengaturan perangkat → Aplikasi → aplikasi ini → Izin → atur Lokasi ke "Izinkan"\n2. Jika Pengaturan perangkat → Lokasi masih nonaktif, aktifkan\n3. Kembali ke aplikasi dan ketuk "Coba lagi" di bawah',
     settingsGuideDesktop: '1. Klik ikon gembok atau "i" di sebelah kiri bilah alamat\n2. Ubah izin Lokasi menjadi "Izinkan"\n3. Muat ulang halaman, lalu klik "Coba lagi" di bawah\n4. Jika masih belum berhasil, periksa juga pengaturan lokasi komputer Anda (Windows/Mac)',
-    langSelectTitle: 'Pilih bahasa'
+    langSelectTitle: 'Pilih bahasa',
+    recordStopBtn: '📍 Simpan',
+    savedStopPopupTitle: '📍 Halte Tersimpan #{number}',
+    savedStopLimit: 'Anda dapat menyimpan hingga {limit} halte. Hapus salah satu sebelum menambah yang baru.',
+    deleteThisSavedStop: 'Hapus halte tersimpan ini',
+    savedStopLoadFail: 'Gagal memuat halte tersimpan:',
+    savedStopSaveFail: 'Gagal menyimpan halte:'
   },
   ko: {
     loadingStops: '정류장 데이터를 불러오는 중…',
@@ -662,7 +716,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. 주소창 왼쪽의 자물쇠 또는 "i" 아이콘 탭 → "권한" 또는 "사이트 설정" 열기\n2. "위치"를 "허용"으로 변경\n3. 기기의 "설정" → "위치"가 꺼져 있다면 켜기\n4. 페이지를 새로고침한 뒤 아래의 "다시 시도"를 누르세요',
     settingsGuideAndroidPwa: '1. 기기 "설정" → "앱" → 이 앱 → "권한" → "위치"를 "허용"으로 변경\n2. 기기의 "설정" → "위치"가 꺼져 있다면 켜기\n3. 앱으로 돌아와 아래의 "다시 시도"를 누르세요',
     settingsGuideDesktop: '1. 주소창 왼쪽의 자물쇠 또는 "i" 아이콘 클릭\n2. "위치" 권한을 "허용"으로 변경\n3. 페이지를 새로고침한 뒤 아래의 "다시 시도"를 클릭\n4. 그래도 해결되지 않으면 컴퓨터(Windows/Mac)의 위치 설정도 확인해 주세요',
-    langSelectTitle: '언어 선택'
+    langSelectTitle: '언어 선택',
+    recordStopBtn: '📍 저장',
+    savedStopPopupTitle: '📍 저장한 정류장 #{number}',
+    savedStopLimit: '정류장은 최대 {limit}개까지 저장할 수 있습니다. 삭제 후 추가해 주세요.',
+    deleteThisSavedStop: '이 저장된 정류장 삭제',
+    savedStopLoadFail: '저장한 정류장을 불러오지 못했습니다:',
+    savedStopSaveFail: '정류장 저장에 실패했습니다:'
   },
   tr: {
     loadingStops: 'Durak verileri yükleniyor…',
@@ -725,7 +785,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Adres çubuğunun solundaki kilit veya "i" simgesine dokunun → "İzinler" veya "Site Ayarları"nı açın\n2. Konum\'u "İzin Ver" olarak değiştirin\n3. Cihaz Ayarları → Konum kapalıysa açın\n4. Sayfayı yenileyip aşağıdaki "Tekrar dene"ye dokunun',
     settingsGuideAndroidPwa: '1. Cihaz Ayarları → Uygulamalar → bu uygulama → İzinler → Konum\'u "İzin Ver" olarak ayarlayın\n2. Cihaz Ayarları → Konum kapalıysa açın\n3. Uygulamaya dönüp aşağıdaki "Tekrar dene"ye dokunun',
     settingsGuideDesktop: '1. Adres çubuğunun solundaki kilit veya "i" simgesine tıklayın\n2. Konum iznini "İzin Ver" olarak değiştirin\n3. Sayfayı yenileyip aşağıdaki "Tekrar dene"ye tıklayın\n4. Sorun devam ederse bilgisayarınızın (Windows/Mac) konum ayarlarını da kontrol edin',
-    langSelectTitle: 'Dil seçin'
+    langSelectTitle: 'Dil seçin',
+    recordStopBtn: '📍 Kaydet',
+    savedStopPopupTitle: '📍 Kayıtlı Durak #{number}',
+    savedStopLimit: 'En fazla {limit} durak kaydedebilirsiniz. Yeni eklemeden önce birini silin.',
+    deleteThisSavedStop: 'Bu kayıtlı durağı sil',
+    savedStopLoadFail: 'Kayıtlı duraklar yüklenemedi:',
+    savedStopSaveFail: 'Durak kaydedilemedi:'
   },
   it: {
     loadingStops: 'Caricamento dati delle fermate…',
@@ -788,7 +854,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Tocca l\'icona del lucchetto o "i" a sinistra della barra degli indirizzi → apri "Autorizzazioni" o "Impostazioni sito"\n2. Cambia Posizione su "Consenti"\n3. Se Impostazioni dispositivo → Posizione è disattivata, attivala\n4. Ricarica la pagina, quindi tocca "Riprova" qui sotto',
     settingsGuideAndroidPwa: '1. Apri Impostazioni dispositivo → App → questa app → Autorizzazioni → imposta Posizione su "Consenti"\n2. Se Impostazioni dispositivo → Posizione è disattivata, attivala\n3. Torna all\'app e tocca "Riprova" qui sotto',
     settingsGuideDesktop: '1. Fai clic sull\'icona del lucchetto o "i" a sinistra della barra degli indirizzi\n2. Cambia l\'autorizzazione Posizione su "Consenti"\n3. Ricarica la pagina, quindi fai clic su "Riprova" qui sotto\n4. Se il problema persiste, controlla anche le impostazioni sulla posizione del tuo computer (Windows/Mac)',
-    langSelectTitle: 'Seleziona lingua'
+    langSelectTitle: 'Seleziona lingua',
+    recordStopBtn: '📍 Salva',
+    savedStopPopupTitle: '📍 Fermata salvata n. {number}',
+    savedStopLimit: 'Puoi salvare fino a {limit} fermate. Eliminane una prima di aggiungerne un\u2019altra.',
+    deleteThisSavedStop: 'Elimina questa fermata salvata',
+    savedStopLoadFail: 'Impossibile caricare le fermate salvate:',
+    savedStopSaveFail: 'Impossibile salvare la fermata:'
   },
   pt: {
     loadingStops: 'Carregando dados das paradas…',
@@ -851,7 +923,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '1. Toque no ícone de cadeado ou "i" à esquerda da barra de endereço → abra "Permissões" ou "Configurações do site"\n2. Altere Localização para "Permitir"\n3. Se Configurações do dispositivo → Localização estiver desativada, ative\n4. Recarregue a página e toque em "Tentar novamente" abaixo',
     settingsGuideAndroidPwa: '1. Abra Configurações do dispositivo → Apps → este app → Permissões → defina Localização como "Permitir"\n2. Se Configurações do dispositivo → Localização estiver desativada, ative\n3. Volte ao aplicativo e toque em "Tentar novamente" abaixo',
     settingsGuideDesktop: '1. Clique no ícone de cadeado ou "i" à esquerda da barra de endereço\n2. Altere a permissão de Localização para "Permitir"\n3. Recarregue a página e clique em "Tentar novamente" abaixo\n4. Se ainda não funcionar, verifique também as configurações de localização do seu computador (Windows/Mac)',
-    langSelectTitle: 'Selecionar idioma'
+    langSelectTitle: 'Selecionar idioma',
+    recordStopBtn: '📍 Salvar',
+    savedStopPopupTitle: '📍 Parada salva #{number}',
+    savedStopLimit: 'Você pode salvar até {limit} paradas. Exclua uma antes de adicionar outra.',
+    deleteThisSavedStop: 'Excluir esta parada salva',
+    savedStopLoadFail: 'Falha ao carregar as paradas salvas:',
+    savedStopSaveFail: 'Falha ao salvar a parada:'
   },
   ar: {
     loadingStops: 'جارٍ تحميل بيانات المحطات…',
@@ -914,7 +992,13 @@ const messages: Record<Locale, Record<string, string>> = {
     settingsGuideAndroidBrowser: '١. اضغط أيقونة القفل أو «i» يسار شريط العنوان ← افتح «الأذونات» أو «إعدادات الموقع»\n٢. غيّر «الموقع» إلى «السماح»\n٣. إذا كانت «الإعدادات» ← «الموقع» في جهازك متوقفة، فعّلها\n٤. أعد تحميل الصفحة ثم اضغط «إعادة المحاولة» أدناه',
     settingsGuideAndroidPwa: '١. افتح إعدادات جهازك ← «التطبيقات» ← هذا التطبيق ← «الأذونات» ← اضبط «الموقع» على «السماح»\n٢. إذا كانت «الإعدادات» ← «الموقع» في جهازك متوقفة، فعّلها\n٣. عد إلى التطبيق واضغط «إعادة المحاولة» أدناه',
     settingsGuideDesktop: '١. انقر أيقونة القفل أو «i» يسار شريط العنوان\n٢. غيّر إذن «الموقع» إلى «السماح»\n٣. أعد تحميل الصفحة ثم انقر «إعادة المحاولة» أدناه\n٤. إذا لم يحل ذلك المشكلة، تحقق أيضًا من إعدادات الموقع في نظام جهاز الكمبيوتر (Windows/Mac)',
-    langSelectTitle: 'اختر اللغة'
+    langSelectTitle: 'اختر اللغة',
+    recordStopBtn: '📍 حفظ',
+    savedStopPopupTitle: '📍 محطة محفوظة رقم {number}',
+    savedStopLimit: 'يمكنك حفظ ما يصل إلى {limit} محطة. يرجى حذف واحدة قبل إضافة أخرى.',
+    deleteThisSavedStop: 'حذف هذه المحطة المحفوظة',
+    savedStopLoadFail: 'فشل تحميل المحطات المحفوظة:',
+    savedStopSaveFail: 'فشل حفظ المحطة:'
   }
 }
 
