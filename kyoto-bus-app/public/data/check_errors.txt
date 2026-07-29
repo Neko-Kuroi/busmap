@@ -1,0 +1,171 @@
+Processing 4685 stops...
+
+==================================================
+Total stops processed: 4685
+Detected potential errors: 35
+==================================================
+
+[1] ID: 964 | Reason: Known error pattern detected
+    JP  : 荒河出合
+    EN  : Ko Kawaide Go
+
+[2] ID: 997 | Reason: Known error pattern detected
+    JP  : 川合
+    EN  : Kawai
+
+[3] ID: 1396 | Reason: Known error pattern detected
+    JP  : 学校下［川合小］
+    EN  : School Shita Kawai Sho
+
+[4] ID: 1416 | Reason: Known error pattern detected
+    JP  : 川合橋
+    EN  : Kawai Bridge
+
+[5] ID: 1902 | Reason: Known error pattern detected
+    JP  : 八阪
+    EN  : Yasaka
+
+[6] ID: 1980 | Reason: Known error pattern detected
+    JP  : 御所ノ口
+    EN  : Gosho No Kuchi
+
+[7] ID: 2062 | Reason: Japanese characters remain
+    JP  : 左京区総合庁舎・京都工芸繊維大学前
+    KANA: さきょううくそうごうちょうしゃ・きょうとこうげいせんいだいがくまえ
+    EN  : Sakyoukusogochosha ・ Kyotokogeisen'i University
+
+[8] ID: 2111 | Reason: Malformed brackets
+    JP  : 北大路バスターミナル《地下鉄北大路駅》
+    KANA: きたおおじばすたーみなる（ちかてつ　きたおおじえき）
+    EN  : Kitaojibasutaaminaru ( Chikatetsu Kitaojieki )
+
+[9] ID: 2173 | Reason: Japanese characters remain
+    JP  : 上終町・瓜生山学園京都芸術大学前
+    KANA: かみはてちょう・うりゅうやまがくえん きょうとげいじゅつだいがくまえ
+    EN  : Kamihatecho ・ Uryuyamagakuen Kyotogeijutsu University
+
+[10] ID: 2198 | Reason: Malformed brackets
+    JP  : 立命館大学前（キャンパス内）
+    KANA: りつめいかんだいがくまえ（きゃんぱすない）
+    EN  : Ritsumeikandaigakumae ( Kyanpasunai )
+
+[11] ID: 2240 | Reason: Known error pattern detected
+    JP  : 堀川今出川
+    KANA: ほりかわいまでがわ
+    EN  : Horikawaimadegawa
+
+[12] ID: 2248 | Reason: Malformed brackets
+    JP  : 烏丸今出川《地下鉄今出川駅》
+    KANA: からすまいまでがわ（ちかてつ　いまでがわえきまえ）
+    EN  : Karasumaimadegawa ( Chikatetsu Imadegawaekimae )
+
+[13] ID: 2298 | Reason: Japanese characters remain
+    JP  : 広沢池・佛大広沢校前
+    KANA: ひろさわのいけ・ぶつだいひろさわこうまえ
+    EN  : Hirosawanoike ・ Butsudaihirosawakomae
+
+[14] ID: 2362 | Reason: Known error pattern detected
+    JP  : 広沢御所ノ内町
+    EN  : Hirosawa Gosho No Uchimachi
+
+[15] ID: 2372 | Reason: Japanese characters remain
+    JP  : 常盤・嵯峨野高校前
+    KANA: ときわ・さがのこうこうまえ
+    EN  : Tokiwa ・ Sagano High School
+
+[16] ID: 2414 | Reason: Malformed brackets
+    JP  : 西ノ京円町《JR円町駅》
+    KANA: にしのきょうえんまち（じぇいあーるえんまちえき）
+    EN  : Nishinokyoenmachi ( Jieiaaruenmachieki )
+
+[17] ID: 2455 | Reason: Malformed brackets
+    JP  : 烏丸丸太町《地下鉄丸太町駅》
+    KANA: からすままるたまち（ちかてつ　まるたまちえき）
+    EN  : Karasumamarutamachi ( Chikatetsu Marutamachieki )
+
+[18] ID: 2506 | Reason: Japanese characters remain
+    JP  : 南禅寺・永観堂道
+    KANA: なんぜんじ・えいかんどうみち
+    EN  : Nanzenji ・ Eikandomichi
+
+[19] ID: 2530 | Reason: Japanese characters remain
+    JP  : 東山二条・岡崎公園口
+    KANA: ひがしやまにじょう・おかざきこうえんぐち
+    EN  : Higashiyamanijo ・ Okazakikoenguchi
+
+[20] ID: 2533 | Reason: Japanese characters remain
+    JP  : 岡崎公園ロームシアター京都・みやこめっせ前
+    KANA: おかざきこうえん　ろーむしあたーきょうと・みやこめっせまえ
+    EN  : Okazakikoen Romushiataakyoto ・ Miyakomessemae
+
+[21] ID: 2616 | Reason: Malformed brackets
+    JP  : 東山三条《地下鉄東山駅》
+    KANA: ひがしやまさんじょう（ちかてつ　ひがしやまえき）
+    EN  : Higashiyamasanjo ( Chikatetsu Higashiyamaeki )
+
+[22] ID: 2636 | Reason: Japanese characters remain
+    JP  : 千本三条・朱雀立命館前
+    KANA: せんぼんさんじょう・すざくりつめいかんまえ
+    EN  : Senbonsanjo ・ Suzakuritsumeikanmae
+
+[23] ID: 2705 | Reason: Malformed brackets
+    JP  : 西大路四条《阪急・嵐電西院駅》
+    KANA: にしおおじしじょう（はんきゅうさいいんえき,らんでんさいえき）
+    EN  : Nishiojishijo ( Hankyusaiin'eki , Randensaieki )
+
+[24] ID: 2714 | Reason: Known error pattern detected
+    JP  : 祇園・八坂神社
+    EN  : Gion / Yasaka Shrine
+
+[25] ID: 2790 | Reason: Malformed brackets
+    JP  : 烏丸五条《地下鉄五条駅》
+    KANA: からすまごじょう（ちかてつ　ごじょうえき）
+    EN  : Karasumagojo ( Chikatetsu Gojoeki )
+
+[26] ID: 2841 | Reason: Japanese characters remain
+    JP  : 鈴虫寺・苔寺道
+    KANA: すずむしでら・こけでらみち
+    EN  : Suzumushidera ・ Kokederamichi
+
+[27] ID: 2881 | Reason: Known error pattern detected
+    JP  : 法貴口
+    EN  : Ho Takashi Kuchi
+
+[28] ID: 2902 | Reason: Japanese characters remain
+    JP  : 梅小路公園・JR梅小路京都西駅前
+    KANA: うめこうじこうえん・じぇいあーるきょうとにしえきまえ
+    EN  : Umekojikoen ・ Jieiaarukyotonishi Station
+
+[29] ID: 2906 | Reason: Japanese characters remain
+    JP  : 七条大宮・京都水族館前
+    KANA: ななじょうおおみや・きょうとすいぞくかんまえ
+    EN  : Nanajoomiya ・ Kyotosuizokukanmae
+
+[30] ID: 2940 | Reason: Japanese characters remain
+    JP  : 梅小路公園・京都鉄道博物館前
+    KANA: うめこうじこうえん・きょうとてつどうはくぶつかんまえ
+    EN  : Umekojikoen ・ Kyototetsudohakubutsukanmae
+
+[31] ID: 2954 | Reason: Known error pattern detected
+    JP  : 法貴
+    EN  : Ho Takashi
+
+[32] ID: 3091 | Reason: Malformed brackets
+    JP  : 大石橋《地下鉄九条駅》
+    KANA: おおいしばし（ちかてつ　くじょうえき）
+    EN  : Oishibashi ( Chikatetsu Kujoeki )
+
+[33] ID: 3358 | Reason: Known error pattern detected
+    JP  : 豆尾
+    EN  : Mame O
+
+[34] ID: 3379 | Reason: Malformed brackets
+    JP  : 南福西町（竹林公園前）
+    KANA: みなみふくにしちょう（竹林公園前）
+    EN  : Minamifukunishicho ( Chikurin Koenmae )
+
+[35] ID: 3797 | Reason: Japanese characters remain
+    JP  : 京阪中書島・伏見港公園
+    KANA: けいはんちゅうしょじま・ふしみこうこうえん
+    EN  : Keihanchushojima ・ Fushimiko Park
+
