@@ -45,12 +45,12 @@
       </button>
     </div>
 
-    <div class="ui-overlay">
+    <!-- 検索ウィジェット：画面下部に固定表示。片手操作での使いやすさを優先し、
+         以前のui-overlay内(画面上部)から独立させてposition:fixedで下部に置く -->
+    <div class="search-widget-wrap">
       <div class="status" v-if="loading">{{ t('loadingStops') }}</div>
 
       <div class="panel" v-else>
-        <div class="count">{{ t('stopCount', { stops: stopCount.toLocaleString(), routes: routeCount.toLocaleString() }) }}</div>
-
         <input
           class="search"
           type="text"
@@ -78,6 +78,14 @@
           >
             {{ t('viewSolution') }}
           </button>
+          <button
+            class="geo-error-dismiss-btn"
+            type="button"
+            :aria-label="t('closePopup')"
+            @click="dismissGeoError"
+          >
+            ✕
+          </button>
         </p>
 
         <div class="route-list" v-if="query">
@@ -102,7 +110,9 @@
           <button class="clear" @click="clearSelection">{{ t('clearSelection') }}</button>
         </div>
       </div>
+    </div>
 
+    <div class="ui-overlay">
       <div class="right-stack">
         <div class="history-panel" v-if="viewHistory.length">
           <button class="history-header" @click="historyPanelOpen = !historyPanelOpen">
@@ -257,8 +267,6 @@ watch(locale, (newLocale) => {
 
 const mapEl = ref(null)
 const loading = ref(true)
-const stopCount = ref(0)
-const routeCount = ref(0)
 const query = ref('')
 const selectedRoute = ref(null)
 const geoSupported = ref(false)
@@ -287,6 +295,12 @@ const viewHistory = ref([]) // [{coordKey, name, otherCount, lat, lng, lastViewe
 // 「記録する」ボタンを押した時だけ配列に追加・localStorageに保存する
 const clickedPins = ref([]) // [{id, lat, lng, createdAt}]
 
+// 停留所ポップアップの「📍記録する」で保存する、お気に入り停留所。
+// ランドマーク/ピンと違い実体は既存の停留所そのものなので、保存内容は
+// id(記録自体のid)・stopId(参照先)・name(停留所名)・createdAtのみに留め、
+// 表示位置(lat/lng)は保存せず描画時にstopsById[stopId]から都度解決する
+const savedStops = ref([]) // [{id, stopId, name, createdAt}]
+
 let allRoutes = []
 let map = null
 let baseLayer = null
@@ -296,6 +310,7 @@ let poiLayer = null
 let routeLinesLayer = null
 let routeLinesGeojson = null // {type:'FeatureCollection', features:[...]} 全事業者ぶんを保持し、activeOperatorで都度絞り込む
 let pinLayer = null
+let savedStopLayer = null
 // クリックのたびに開く「未記録・下見用」のポップアップ。マーカーには紐付かない
 // L.popup単体で、次のクリック時や記録確定時に閉じる
 let pendingPinPopup = null
@@ -363,6 +378,8 @@ const HISTORY_LIMIT = 50
 const CLICKED_PIN_STORAGE_KEY = 'kyoto-bus-app:clickedPins'
 const CLICKED_PIN_LIMIT = 20 // ランドマークと同じ考え方：無制限は脆弱性になるため上限を設け、
                               // 超えたら自動で古いものを消さず追加をブロックする
+const SAVED_STOP_STORAGE_KEY = 'kyoto-bus-app:savedStops'
+const SAVED_STOP_LIMIT = 20 // ランドマーク/ピンと同じ上限方式
 
 // 停留所の緯度経度から、重複統合・ページ記憶・履歴で共通して使う座標キーを作る
 function coordKeyOf(lat, lng) {
@@ -634,6 +651,26 @@ function createClickedPinIcon() {
     iconSize: [CLICKED_PIN_ICON_W, CLICKED_PIN_ICON_H],
     iconAnchor: [CLICKED_PIN_ICON_W / 2, CLICKED_PIN_ICON_H],
     popupAnchor: [0, -CLICKED_PIN_ICON_H]
+  })
+}
+
+// 記録した停留所用：ランドマーク/ピンと同じピン形状だが、色は黄緑系統にして
+// 見分けられるようにする（既存の停留所そのものを指すため、住所ジオコーディングも
+// 座標入力も伴わない）
+const SAVED_STOP_ICON_W = 30
+const SAVED_STOP_ICON_H = 40
+function createSavedStopIcon() {
+  const html = `<svg width="${SAVED_STOP_ICON_W}" height="${SAVED_STOP_ICON_H}" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 0C6.716 0 0 6.716 0 15c0 11.25 15 25 15 25s15-13.75 15-25C30 6.716 23.284 0 15 0z"
+      fill="#84cc16" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="15" cy="15" r="5.5" fill="#ffffff"/>
+  </svg>`
+  return window.__L.divIcon({
+    html,
+    className: 'saved-stop-pin-icon',
+    iconSize: [SAVED_STOP_ICON_W, SAVED_STOP_ICON_H],
+    iconAnchor: [SAVED_STOP_ICON_W / 2, SAVED_STOP_ICON_H],
+    popupAnchor: [0, -SAVED_STOP_ICON_H]
   })
 }
 
@@ -918,6 +955,21 @@ function buildClickedPinPopupHtml(pin, number) {
   </div>`
 }
 
+// 記録した停留所のポップアップ。既存の停留所を指すだけなので、住所欄・
+// 地図埋め込み・外部リンク一覧は持たず、番号＋停留所名のみのシンプルな構成にする
+function buildSavedStopPopupHtml(saved, number) {
+  const stop = stopsById[saved.stopId]
+  const name = stop ? displayStopName(stop) : saved.name
+  return `<div class="landmark-popup">
+    <p class="landmark-popup-title">${escapeHtml(t('savedStopPopupTitle', { number }))}</p>
+    <p class="landmark-popup-address">${escapeHtml(name)}</p>
+    <div class="popup-actions has-primary">
+      <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+      <button class="saved-stop-delete-btn" data-id="${escapeHtml(saved.id)}">${escapeHtml(t('deleteThisSavedStop'))}</button>
+    </div>
+  </div>`
+}
+
 function loadClickedPinsFromStorage() {
   if (typeof localStorage === 'undefined') return []
   try {
@@ -973,6 +1025,7 @@ function refreshPopupsForLocale() {
   }
   renderLandmarks()
   renderClickedPins()
+  renderSavedStops()
 }
 
 // ポップアップ内の「記録する」ボタンが押された時だけ、ここで初めてデータを
@@ -999,6 +1052,68 @@ function removeClickedPin(id) {
   clickedPins.value = clickedPins.value.filter(p => p.id !== id)
   saveClickedPinsToStorage()
   renderClickedPins()
+}
+
+function loadSavedStopsFromStorage() {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(SAVED_STOP_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error(t('savedStopLoadFail'), err)
+    return []
+  }
+}
+
+function saveSavedStopsToStorage() {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(SAVED_STOP_STORAGE_KEY, JSON.stringify(savedStops.value))
+  } catch (err) {
+    console.error(t('savedStopSaveFail'), err)
+  }
+}
+
+// 保存内容にlat/lngを持たないため、描画のたびにstopsById[stopId]から現在の
+// 停留所データを引いて位置を解決する。データ更新等でstopIdが見つからなく
+// なった場合（起こりにくいが）は、その記録だけ描画をスキップする
+function renderSavedStops() {
+  if (!savedStopLayer) return
+  savedStopLayer.clearLayers()
+  const L = window.__L
+  savedStops.value.forEach((saved, idx) => {
+    const stop = stopsById[saved.stopId]
+    if (!stop) return
+    const marker = L.marker([stop.lat, stop.lng], { icon: createSavedStopIcon(), bubblingMouseEvents: false })
+    marker.bindPopup(buildSavedStopPopupHtml(saved, idx + 1), { maxWidth: 300 })
+    bindHoverPopup(marker)
+    marker.addTo(savedStopLayer)
+  })
+}
+
+// 停留所ポップアップの「📍記録する」ボタンから呼ばれる。同じstopIdは
+// 二重記録しない（ボタン自体もalreadySavedの間は出さないが、念のため関数側でも防ぐ）
+function addSavedStop(stopId, name) {
+  if (savedStops.value.length >= SAVED_STOP_LIMIT) return
+  if (savedStops.value.some(s => s.stopId === stopId)) return
+
+  const saved = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    stopId,
+    name,
+    createdAt: Date.now()
+  }
+  savedStops.value.push(saved)
+  saveSavedStopsToStorage()
+  renderSavedStops()
+
+  if (map) map.closePopup()
+}
+
+function removeSavedStop(id) {
+  savedStops.value = savedStops.value.filter(s => s.id !== id)
+  saveSavedStopsToStorage()
+  renderSavedStops()
 }
 
 function loadHistoryFromStorage() {
@@ -1151,8 +1266,16 @@ function openSettingsGuide() {
   settingsGuideOpen.value = true
 }
 
+// geoError表示の×ボタン、および設定ガイドモーダルを閉じた時に共通で呼ぶ。
+// モーダルだけ閉じてエラーメッセージが下に居座り続けたままにならないよう連動させる
+function dismissGeoError() {
+  geoError.value = ''
+  geoErrorType.value = ''
+}
+
 function closeSettingsGuide() {
   settingsGuideOpen.value = false
+  dismissGeoError()
 }
 
 // 設定手順モーダル内の「再試行」ボタン。locateUser()を再実行し、
@@ -1259,7 +1382,9 @@ function buildMiniStopLabel(stop, groupSize) {
   return `<span class="stop-mini-name">${escapeHtml(displayStopName(stop))}</span>${kanaHtml}${otherHtml}`
 }
 
-function buildLocationExtrasHtml(lat, lng) {
+function buildLocationExtrasHtml(stop) {
+  const lat = stop.lat
+  const lng = stop.lng
   const streetViewHtml = `<div class="stop-streetview">
   <iframe
     src="https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed"
@@ -1281,9 +1406,28 @@ function buildLocationExtrasHtml(lat, lng) {
       <a href="https://labs.mapple.com/mapplevt.html#17/${lat}/${lng}" target="_blank" rel="noopener">📍 MAPPLE</a>
     </div>`
 
+  // 「📍記録する」ボタン：既に記録済みの停留所なら出さない（二重記録防止）。
+  // 上限到達時も出さず、代わりに上限メッセージを表示する
+  const alreadySaved = savedStops.value.some(s => String(s.stopId) === String(stop.id))
+  let recordBtnHtml = ''
+  let limitMsgHtml = ''
+  if (alreadySaved) {
+    // 何も出さない（記録するボタンを表示しない）
+  } else if (savedStops.value.length >= SAVED_STOP_LIMIT) {
+    limitMsgHtml = `<p class="landmark-error">${escapeHtml(t('savedStopLimit', { limit: SAVED_STOP_LIMIT }))}</p>`
+  } else {
+    recordBtnHtml = `<button class="record-stop-btn" data-stop-id="${escapeHtml(String(stop.id))}" data-stop-name="${escapeHtml(stop.name)}">${escapeHtml(t('recordStopBtn'))}</button>`
+  }
+  const hasPrimary = !!recordBtnHtml
+
+  // 停留所ポップアップは「閉じる」を左端、「記録する」を右端に配置する
+  // （記録するボタンが無い＝上限到達時・記録済み時は閉じるボタンのみ右寄せになる）。
+  // stop-popup-actionsで外部リンク一覧との間隔を他ポップアップより詰める
   const closeActionHtml = `
-    <div class="popup-actions">
+    ${limitMsgHtml}
+    <div class="popup-actions stop-popup-actions${hasPrimary ? ' has-primary' : ''}">
       <button class="popup-close-btn" data-close="1">${escapeHtml(t('closePopup'))}</button>
+      ${recordBtnHtml}
     </div>`
 
   return streetViewHtml + externalLinksHtml + closeActionHtml
@@ -1296,7 +1440,7 @@ function buildPopupHtml(stop, subLabel) {
     ? `<p class="stop-link"><a href="${stop.url}" target="_blank" rel="noopener">${escapeHtml(t('viewTimetable'))}</a></p>`
     : ''
 
-  const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
+  const extrasHtml = buildLocationExtrasHtml(stop)
 
   return `<div class="stop-popup">
     <p class="stop-name">${escapeHtml(displayStopName(stop))}</p>
@@ -1345,7 +1489,7 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
     <div class="stop-pager-links">${pagerLinksHtml}</div>
   </div>`
 
-  const extrasHtml = buildLocationExtrasHtml(stop.lat, stop.lng)
+  const extrasHtml = buildLocationExtrasHtml(stop)
 
   return `<div class="stop-popup">
     ${pagerHtml}
@@ -1602,6 +1746,16 @@ onMounted(async () => {
       addClickedPin(Number(pinRecordEl.dataset.lat), Number(pinRecordEl.dataset.lng), memoEl ? memoEl.value : '')
       return
     }
+    const savedStopDeleteEl = e.target.closest('.saved-stop-delete-btn')
+    if (savedStopDeleteEl) {
+      removeSavedStop(savedStopDeleteEl.dataset.id)
+      return
+    }
+    const recordStopEl = e.target.closest('.record-stop-btn')
+    if (recordStopEl) {
+      addSavedStop(recordStopEl.dataset.stopId, recordStopEl.dataset.stopName)
+      return
+    }
     const pageEl = e.target.closest('.stop-page-link')
     if (pageEl) {
       goToStopPage(pageEl.dataset.coordKey, Number(pageEl.dataset.page))
@@ -1672,6 +1826,11 @@ onMounted(async () => {
   clickedPins.value = loadClickedPinsFromStorage()
   renderClickedPins()
 
+  // savedStopLayerも同じ理由で先に初期化しておく。renderSavedStops()自体は
+  // stopsById（停留所データ）を参照するため、実際の描画はstops読み込み後に行う
+  savedStopLayer = L.layerGroup().addTo(map)
+  savedStops.value = loadSavedStopsFromStorage()
+
   viewHistory.value = loadHistoryFromStorage()
 
   // 事業者単位のバスルート線　道路 // 事業者単位のバスルート線
@@ -1706,11 +1865,12 @@ onMounted(async () => {
   routeNameEnByKey = (routesEnRes && routesEnRes.ok) ? await routesEnRes.json() : {}
   operatorEnByJa = (operatorsEnRes && operatorsEnRes.ok) ? await operatorsEnRes.json() : {}
 
-  stopCount.value = stops.length
-  routeCount.value = allRoutes.length
   loading.value = false
 
   for (const s of stops) stopsById[s.id] = s
+
+  // stopsById構築後でないと停留所位置を解決できないため、ここで初めて描画する
+  renderSavedStops()
 
   dataBounds = L.latLngBounds(stops.map(s => [s.lat, s.lng]))
   
@@ -1824,6 +1984,15 @@ onMounted(async () => {
   pointer-events: auto;
 }
 
+/* 検索ウィジェット（.status/.panel）を画面下部に固定するラッパー。
+   ランドマークタブ(.landmark-tab)が右下固定なのに対し、こちらは左下固定にする */
+.search-widget-wrap {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1000;
+}
+
 .status {
   background: rgba(255, 255, 255, 0.42);
   padding: 5px 10px;
@@ -1859,12 +2028,6 @@ onMounted(async () => {
   max-height: calc(100vh - 24px); /* dvh未対応ブラウザ向けフォールバック */
   max-height: calc(100dvh - 24px); /* モバイルのアドレスバー分の高さズレに追従する */
   overflow-y: auto;
-}
-
-.count {
-  color: #333;
-  margin-bottom: 5px;
-  font-size: 11px;
 }
 
 .search {
@@ -1924,6 +2087,22 @@ onMounted(async () => {
 
 .geo-error-help-btn:hover {
   color: #1e40af;
+}
+
+.geo-error-dismiss-btn {
+  display: inline-block;
+  margin-left: 4px;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.geo-error-dismiss-btn:hover {
+  color: #991b1b;
 }
 
 .settings-guide-overlay {
@@ -2286,6 +2465,17 @@ onMounted(async () => {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
+:deep(.saved-stop-pin-icon) {
+  background: transparent;
+  border: none;
+  overflow: visible;
+}
+
+:deep(.saved-stop-pin-icon) svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
 :deep(.poi-marker-icon) {
   background: transparent;
   border: none;
@@ -2363,6 +2553,12 @@ onMounted(async () => {
   justify-content: space-between;
 }
 
+/* 停留所ポップアップの最下部（外部リンク一覧とのマージン）だけ、
+   他ポップアップ(margin-top:10px)より詰めて表示する */
+:deep(.popup-actions.stop-popup-actions) {
+  margin-top: 6px;
+}
+
 :deep(.popup-close-btn) {
   border: none;
   background: #f3f4f6;
@@ -2378,7 +2574,8 @@ onMounted(async () => {
 }
 
 :deep(.landmark-delete-btn),
-:deep(.pin-delete-btn) {
+:deep(.pin-delete-btn),
+:deep(.saved-stop-delete-btn) {
   border: none;
   background: #dc2626;
   color: white;
@@ -2391,6 +2588,17 @@ onMounted(async () => {
 :deep(.pin-record-btn) {
   border: none;
   background: #2563eb;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 停留所を記録するボタン。マーカーの黄緑色(#84cc16)と揃えた配色にする */
+:deep(.record-stop-btn) {
+  border: none;
+  background: #65a30d;
   color: white;
   border-radius: 4px;
   padding: 4px 8px;
@@ -2742,8 +2950,11 @@ onMounted(async () => {
 }
 
 /* 「時刻表を見る」リンク（stop.urlが無い場合は停留所名等）とすぐ下の
-   Googleマップ埋め込みiframeが接近しすぎないよう間隔を設ける */
+   Googleマップ埋め込みiframeが接近しすぎないよう間隔を設ける。
+   狭いデバイス（幅・高さどちらかが600px以下）では埋め込み自体を非表示にし、
+   幅・高さとも601px以上（AND条件）の時だけ表示する */
 :deep(.stop-streetview) {
+  display: none;
   margin-top: 6px;
 }
 
@@ -2754,6 +2965,10 @@ onMounted(async () => {
 }
 
 @media (min-width: 601px) and (min-height: 601px) {
+  :deep(.stop-streetview) {
+    display: block;
+  }
+
   :deep(.stop-streetview iframe) {
     width: 300px;
     height: 300px;
@@ -2820,7 +3035,7 @@ onMounted(async () => {
   opacity: 0.95;
   right: 0px;
   bottom: 120px;
-  width: 170px;
+  width: 120px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
