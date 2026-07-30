@@ -284,12 +284,12 @@ watch(locale, (newLocale) => {
 // lngRangeの端まで来たら反対側へ戻る＝画面外で折り返す演出）
 const CLOUD_BASE_ZOOM = 13
 const CLOUD_SPRITES = [
-  { id: 1, lat: 35.045, lng: 135.70, widthPx: 420, heightRatio: 0.29, driftLngPerSec: 0.00028, lngRange: [135.60, 135.95] },
-  { id: 2, lat: 35.025, lng: 135.82, widthPx: 300, heightRatio: 0.31, driftLngPerSec: 0.00019, lngRange: [135.68, 135.98] },
-  { id: 3, lat: 35.005, lng: 135.65, widthPx: 480, heightRatio: 0.28, driftLngPerSec: 0.00033, lngRange: [135.55, 135.92] },
-  { id: 4, lat: 34.985, lng: 135.78, widthPx: 340, heightRatio: 0.30, driftLngPerSec: 0.00022, lngRange: [135.65, 135.99] },
-  { id: 5, lat: 34.965, lng: 135.72, widthPx: 400, heightRatio: 0.29, driftLngPerSec: 0.00026, lngRange: [135.58, 135.94] },
-  { id: 6, lat: 35.060, lng: 135.85, widthPx: 260, heightRatio: 0.32, driftLngPerSec: 0.00017, lngRange: [135.70, 136.00] }
+  { id: 1, lat: 35.045, lng: 135.70, widthPx: 420*2, heightRatio: 0.29, driftLngPerSec: 0.00028, lngRange: [135.60, 135.95] },
+  { id: 2, lat: 35.025, lng: 135.82, widthPx: 300*2, heightRatio: 0.31, driftLngPerSec: 0.00019, lngRange: [135.68, 135.98] },
+  { id: 3, lat: 35.005, lng: 135.65, widthPx: 480*2, heightRatio: 0.28, driftLngPerSec: 0.00033, lngRange: [135.55, 135.92] },
+  { id: 4, lat: 34.985, lng: 135.78, widthPx: 340*2, heightRatio: 0.30, driftLngPerSec: 0.00022, lngRange: [135.65, 135.99] },
+  { id: 5, lat: 34.965, lng: 135.72, widthPx: 400*2, heightRatio: 0.29, driftLngPerSec: 0.00026, lngRange: [135.58, 135.94] },
+  { id: 6, lat: 35.060, lng: 135.85, widthPx: 260*2, heightRatio: 0.32, driftLngPerSec: 0.00017, lngRange: [135.70, 136.00] }
 ]
 // 各雲の現在の緯度経度・Leafletマーカーへの参照を保持する実行時状態
 const cloudState = CLOUD_SPRITES.map(c => ({ ...c, curLng: c.lng, marker: null }))
@@ -2130,7 +2130,7 @@ onUnmounted(() => {
     rgba(255, 255, 255, 0) 72%
   );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
 :deep(.cloud-icon) {
