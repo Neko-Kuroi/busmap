@@ -816,6 +816,14 @@ function renderLandmarks() {
   landmarks.value.forEach((lm, idx) => {
     const marker = L.marker([lm.lat, lm.lng], { icon: createLandmarkIcon(), bubblingMouseEvents: false })
     marker.bindPopup(buildLandmarkPopupHtml(lm, idx + 1), { maxWidth: 300 })
+    // saved-stop-tooltip（記録した停留所）と同じ考え方：ホバーしなくても
+    // 地図上で何件目に登録したランドマークか分かるよう、常時表示の番号ラベルを付ける
+    marker.bindTooltip(String(idx + 1), {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -LANDMARK_ICON_H],
+      className: 'landmark-count-tooltip'
+    })
     marker.addTo(landmarkLayer)
   })
 }
@@ -1009,6 +1017,14 @@ function renderClickedPins() {
     const marker = L.marker([pin.lat, pin.lng], { icon: createClickedPinIcon(), bubblingMouseEvents: false })
     marker.bindPopup(buildClickedPinPopupHtml(pin, idx + 1), { maxWidth: 300 })
     bindHoverPopup(marker)
+    // landmark-count-tooltipと同じ考え方：ホバーしなくても地図上で
+    // 何件目に記録したピンか分かるよう、常時表示の番号ラベルを付ける
+    marker.bindTooltip(String(idx + 1), {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -CLICKED_PIN_ICON_H],
+      className: 'clicked-pin-count-tooltip'
+    })
     marker.addTo(pinLayer)
   })
 }
@@ -2008,6 +2024,16 @@ onMounted(async () => {
   height: 100%;
 }
 
+/* #mapはdir="ltr"固定にしてLeaflet内部の位置計算(transform)を常にLTR前提で
+   正しく動かす。そのうえで、tooltip/popup内の「文字表示」だけ、祖先の
+   .map-wrap[dir="rtl"]を見て個別にRTL表示へ戻す（アラビア語・ヘブライ語等、
+   言語を問わず効く汎用対応）。 */
+.map-wrap[dir="rtl"] :deep(.leaflet-tooltip),
+.map-wrap[dir="rtl"] :deep(.leaflet-popup-content) {
+  direction: rtl;
+  text-align: right;
+}
+
 /* 左の検索パネルと右のランドマーク・履歴パネルをまとめる外枠。
    flex-wrapにより、横幅が足りる画面では横並び、足りない画面（iPhone等）では
    自動的に折り返して縦積みになり、重なりを防ぐ。優先順位は書いた順
@@ -2862,6 +2888,32 @@ onMounted(async () => {
   border-color: #fff;
 }
 
+/* ランドマーク(紫アイコン)の常時番号ラベル。何件目に登録したかが
+   アイコンの色(#7c3aed)に合わせた枠線ですぐ分かるようにする */
+:deep(.landmark-count-tooltip) {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: #fff;
+  border-color: #7c3aed;
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+/* クリックピン(水色アイコン)の常時番号ラベル。アイコンの色(#0ea5e9)に
+   合わせた枠線にして、ランドマークの紫ラベルと見分けられるようにする */
+:deep(.clicked-pin-count-tooltip) {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: #fff;
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+  font-weight: 700;
+}
+
 /* 記録した停留所(緑アイコン)の常時ラベル。アイコンの色(#84cc16)に
    合わせた枠線にして、星マーカーの白ラベルと見分けられるようにする */
 :deep(.saved-stop-tooltip) {
@@ -2876,6 +2928,14 @@ onMounted(async () => {
 
 :deep(.saved-stop-tooltip)::before {
   border-top-color: #84cc16;
+}
+
+:deep(.landmark-count-tooltip)::before {
+  border-top-color: #7c3aed;
+}
+
+:deep(.clicked-pin-count-tooltip)::before {
+  border-top-color: #0ea5e9;
 }
 
 :deep(.stop-mini-name) {
@@ -3122,13 +3182,5 @@ onMounted(async () => {
   height: auto;
   z-index: 1000;
   pointer-events: none;
-}
-
-/* Leaflet生成物の位置計算は常にLTRで固定。
-   文字表示だけ祖先の dir="rtl" を見て個別に反転させる */
-.map-wrap[dir="rtl"] :deep(.leaflet-tooltip),
-.map-wrap[dir="rtl"] :deep(.leaflet-popup-content) {
-  direction: rtl;
-  text-align: right;
 }
 </style>
