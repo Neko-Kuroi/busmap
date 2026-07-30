@@ -2068,15 +2068,17 @@ onMounted(async () => {
   position: absolute;
   left: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  filter: blur(10px);
-  /* box-shadowの複製で、単なる楕円より少しふわふわした雲らしい輪郭にする */
+  background: rgba(255, 255, 255, 0.8);
+  filter: blur(6px);
+  /* box-shadowのオフセットは%ではなくpxでないと無効になる(仕様上、
+     1つでも不正な値があると宣言全体が無視される)ため、px指定にする。
+     複数個ずらして重ねることで、単なる楕円より雲らしい輪郭にする */
   box-shadow:
-    30% -35% 0 -8px rgba(255, 255, 255, 0.5),
-    60% 10% 0 -12px rgba(255, 255, 255, 0.4),
-    -20% 20% 0 -14px rgba(255, 255, 255, 0.4);
-  /* 「ごく薄い」濃さ：地図の視認性を優先し、雲と分かる程度に留める */
-  opacity: 0.16;
+    36px -14px 0 -6px rgba(255, 255, 255, 0.8),
+    72px 6px 0 -10px rgba(255, 255, 255, 0.7),
+    -24px 8px 0 -10px rgba(255, 255, 255, 0.7);
+  /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
+  opacity: 0.35;
   animation-name: cloud-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
