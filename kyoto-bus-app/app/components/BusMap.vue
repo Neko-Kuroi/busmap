@@ -4,23 +4,6 @@
   <div class="map-wrap" :dir="isRtl ? 'rtl' : 'ltr'">
     <div id="map" ref="mapEl" dir="ltr"></div>
 
-    <!-- 演出用：地図の上をゆっくり流れる雲。地理座標には紐付かない
-         純粋なCSSアニメーションで、クリックは下の地図に貫通させる -->
-    <div class="cloud-layer" aria-hidden="true">
-      <div
-        v-for="cloud in CLOUD_SPRITES"
-        :key="cloud.id"
-        class="cloud-sprite"
-        :style="{
-          top: cloud.top,
-          width: cloud.width,
-          height: cloud.height,
-          animationDuration: cloud.duration,
-          animationDelay: cloud.delay
-        }"
-      ></div>
-    </div>
-
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
@@ -192,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { normalize } from '@geolonia/normalize-japanese-addresses'
 import { useI18n, LOCALE_OPTIONS } from '../composables/useI18n'
 
@@ -293,17 +276,24 @@ watch(locale, (newLocale) => {
   refreshPopupsForLocale()
 })
 
-// 演出用の雲。地理座標には紐付けず、画面上をゆっくり流れるだけの
-// 純粋な見た目の効果。個体ごとに高さ・大きさ・速度・開始タイミングを
-// ずらして、単調な繰り返しに見えないようにする
+// 演出用の雲。緯度経度にアンカーすることでLeafletのペイン機構に乗せ、
+// パン・ズームに追従させる（=タイルや停留所マーカーと同じ仕組み）。
+// widthPxはデフォルトズーム(CLOUD_BASE_ZOOM=13)時点でのサイズ。
+// ズームレベルが変わるたびcreateCloudIcon()で2^(zoom-13)倍に再計算する。
+// lng/lngRangeは経度方向にゆっくり流れる範囲（driftLngPerSecぶんずつ進み、
+// lngRangeの端まで来たら反対側へ戻る＝画面外で折り返す演出）
+const CLOUD_BASE_ZOOM = 13
 const CLOUD_SPRITES = [
-  { id: 1, top: '8%', width: '160px', height: '46px', duration: '75s', delay: '0s' },
-  { id: 2, top: '18%', width: '110px', height: '34px', duration: '95s', delay: '-20s' },
-  { id: 3, top: '32%', width: '190px', height: '54px', duration: '65s', delay: '-45s' },
-  { id: 4, top: '48%', width: '130px', height: '38px', duration: '110s', delay: '-10s' },
-  { id: 5, top: '62%', width: '150px', height: '44px', duration: '85s', delay: '-60s' },
-  { id: 6, top: '76%', width: '100px', height: '30px', duration: '70s', delay: '-30s' }
+  { id: 1, lat: 35.045, lng: 135.70, widthPx: 420, heightRatio: 0.29, driftLngPerSec: 0.00028, lngRange: [135.60, 135.95] },
+  { id: 2, lat: 35.025, lng: 135.82, widthPx: 300, heightRatio: 0.31, driftLngPerSec: 0.00019, lngRange: [135.68, 135.98] },
+  { id: 3, lat: 35.005, lng: 135.65, widthPx: 480, heightRatio: 0.28, driftLngPerSec: 0.00033, lngRange: [135.55, 135.92] },
+  { id: 4, lat: 34.985, lng: 135.78, widthPx: 340, heightRatio: 0.30, driftLngPerSec: 0.00022, lngRange: [135.65, 135.99] },
+  { id: 5, lat: 34.965, lng: 135.72, widthPx: 400, heightRatio: 0.29, driftLngPerSec: 0.00026, lngRange: [135.58, 135.94] },
+  { id: 6, lat: 35.060, lng: 135.85, widthPx: 260, heightRatio: 0.32, driftLngPerSec: 0.00017, lngRange: [135.70, 136.00] }
 ]
+// 各雲の現在の緯度経度・Leafletマーカーへの参照を保持する実行時状態
+const cloudState = CLOUD_SPRITES.map(c => ({ ...c, curLng: c.lng, marker: null }))
+let cloudDriftTimer = null
 
 const mapEl = ref(null)
 const loading = ref(true)
@@ -549,6 +539,53 @@ function renderRouteLines(operator) {
   }).addTo(routeLinesLayer)
 }
 
+// 演出用の雲をLeafletのペインとして生成する。tilePane(200)とoverlayPane(400、
+// ルートパスがここに乗る)の間にcloudPane(300)を挟むことで、
+// 「タイルより上・実用的な要素(ルートパス/マーカー/ポップアップ)より下」に
+// 収める。デフォルトの_mapPane配下に作るため、パン・ズームにも自動で追従する
+function renderClouds() {
+  const L = window.__L
+  if (!map || map.getPane('cloudPane')) return
+  const pane = map.createPane('cloudPane')
+  pane.style.zIndex = 300
+  pane.style.pointerEvents = 'none'
+
+  const zoom = map.getZoom()
+  cloudState.forEach(cloud => {
+    cloud.marker = L.marker([cloud.lat, cloud.curLng], {
+      icon: createCloudIcon(cloud, zoom),
+      pane: 'cloudPane',
+      interactive: false,
+      keyboard: false
+    }).addTo(map)
+  })
+
+  startCloudDrift()
+}
+
+// 各雲の経度をゆっくり進め、lngRangeの端まで来たら反対端へ折り返す
+// （＝画面外でループする、元のCSSアニメーションと同じ考え方をLeaflet座標で行う）
+function startCloudDrift() {
+  if (cloudDriftTimer) return
+  const INTERVAL_MS = 200
+  cloudDriftTimer = setInterval(() => {
+    cloudState.forEach(cloud => {
+      if (!cloud.marker) return
+      cloud.curLng += cloud.driftLngPerSec * (INTERVAL_MS / 1000)
+      const [min, max] = cloud.lngRange
+      if (cloud.curLng > max) cloud.curLng = min
+      cloud.marker.setLatLng([cloud.lat, cloud.curLng])
+    })
+  }, INTERVAL_MS)
+}
+
+function stopCloudDrift() {
+  if (cloudDriftTimer) {
+    clearInterval(cloudDriftTimer)
+    cloudDriftTimer = null
+  }
+}
+
 function clearSelection() {
   selectedRoute.value = null
   query.value = ''
@@ -614,6 +651,22 @@ function createClusterIcon(cluster) {
     html: `<div class="stop-cluster-dot" style="width:${size}px;height:${size}px;line-height:${size}px;">${count}</div>`,
     className: 'stop-cluster-icon',
     iconSize: [size, size]
+  })
+}
+
+// 演出用の雲アイコン。widthPxはCLOUD_BASE_ZOOM時点でのサイズで、
+// 実際のズームレベルとの差ぶん2倍/半分…と指数的にスケールする
+// （タイルや実世界の物体が地図上でズームに応じて大きく/小さく見えるのと同じ考え方）。
+// 極端なズームで大きくなりすぎ/小さくなりすぎないよう上下限をクランプする
+function createCloudIcon(cloud, zoom) {
+  const scale = 2 ** (zoom - CLOUD_BASE_ZOOM)
+  const width = Math.max(60, Math.min(1400, cloud.widthPx * scale))
+  const height = width * cloud.heightRatio
+  return window.__L.divIcon({
+    html: `<div class="cloud-sprite" style="width:${width}px;height:${height}px;"></div>`,
+    className: 'cloud-icon',
+    iconSize: [width, height],
+    iconAnchor: [width / 2, height / 2]
   })
 }
 
@@ -1890,6 +1943,9 @@ onMounted(async () => {
       baseLayer.eachLayer(l => l.setIcon(createDotIcon(z)))
     }
     if (highlightLayer) highlightLayer.eachLayer(l => l.setIcon(createStarIcon(z)))
+    cloudState.forEach(cloud => {
+      if (cloud.marker) cloud.marker.setIcon(createCloudIcon(cloud, z))
+    })
   })
 
   
@@ -1986,6 +2042,7 @@ onMounted(async () => {
   highlightLayer = L.layerGroup().addTo(map)
   poiLayer = L.layerGroup().addTo(map)
   routeLinesLayer = L.layerGroup().addTo(map)
+  renderClouds()
 
   const stopGroupsByCoord = new Map()
   for (const stop of stops) {
@@ -2033,6 +2090,10 @@ onMounted(async () => {
 
   baseLayer.addTo(map)
 })
+
+onUnmounted(() => {
+  stopCloudDrift()
+})
 </script>
 
 <style scoped>
@@ -2053,24 +2114,15 @@ onMounted(async () => {
   height: 100%;
 }
 
-/* 演出用の雲レイヤー。地図・UIどちらの操作も邪魔しないよう、
-   クリックは常に貫通させ(pointer-events: none)、UIパネル(z-index:1000)
-   より下、地図タイルより上に置く */
-.cloud-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 500;
-}
-
-.cloud-sprite {
-  position: absolute;
-  left: 0;
+/* 演出用の雲。JS側(createCloudIcon)でLeafletのdivIconとして生成され、
+   raw HTMLとして注入されるためscopedの対象外になる(:deep()が必要)。
+   位置・サイズ・パン/ズーム追従はLeafletのマーカー機構が担うため、
+   ここでは見た目(グラデーション)だけを指定する */
+:deep(.cloud-sprite) {
   border-radius: 50%;
   /* filter:blurは合成コストが高いため使わず、中心から外側へ透明になる
      グラデーションだけで柔らかい輪郭を表現する（塗りつぶし処理だけなので
-     blurフィルターより軽い。box-shadowの複製も不要になる） */
+     blurフィルターより軽い） */
   background: radial-gradient(
     ellipse at center,
     rgba(255, 255, 255, 0.9) 0%,
@@ -2078,22 +2130,12 @@ onMounted(async () => {
     rgba(255, 255, 255, 0) 72%
   );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
-  opacity: 0.3;
-  animation-name: cloud-drift;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  /* transformのみのアニメーションであることをブラウザに伝え、GPU合成の
-     専用レイヤーとして扱わせる（描画のたびの再計算を避けて軽くする） */
-  will-change: transform;
+  opacity: 0.35;
 }
 
-@keyframes cloud-drift {
-  from {
-    transform: translateX(-30%);
-  }
-  to {
-    transform: translateX(130vw);
-  }
+:deep(.cloud-icon) {
+  background: transparent;
+  border: none;
 }
 
 /* #mapはdir="ltr"固定にしてLeaflet内部の位置計算(transform)を常にLTR前提で
@@ -3250,7 +3292,7 @@ onMounted(async () => {
   opacity: 0.85;
   right: 0px;
   bottom: 110px;
-  width: 130px;
+  width: 120px;
   height: auto;
   z-index: 1000;
   pointer-events: none;
