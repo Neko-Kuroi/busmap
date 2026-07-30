@@ -4,6 +4,23 @@
   <div class="map-wrap" :dir="isRtl ? 'rtl' : 'ltr'">
     <div id="map" ref="mapEl" dir="ltr"></div>
 
+    <!-- 演出用：地図の上をゆっくり流れる雲。地理座標には紐付かない
+         純粋なCSSアニメーションで、クリックは下の地図に貫通させる -->
+    <div class="cloud-layer" aria-hidden="true">
+      <div
+        v-for="cloud in CLOUD_SPRITES"
+        :key="cloud.id"
+        class="cloud-sprite"
+        :style="{
+          top: cloud.top,
+          width: cloud.width,
+          height: cloud.height,
+          animationDuration: cloud.duration,
+          animationDelay: cloud.delay
+        }"
+      ></div>
+    </div>
+
     <!-- 右下のズームボタンのすぐ上に小さく表示するロゴ -->
     <img src="/logobus.webp" alt="" class="corner-logo" />
 
@@ -275,6 +292,18 @@ watch(locale, (newLocale) => {
   setTileLayersForLocale(newLocale)
   refreshPopupsForLocale()
 })
+
+// 演出用の雲。地理座標には紐付けず、画面上をゆっくり流れるだけの
+// 純粋な見た目の効果。個体ごとに高さ・大きさ・速度・開始タイミングを
+// ずらして、単調な繰り返しに見えないようにする
+const CLOUD_SPRITES = [
+  { id: 1, top: '8%', width: '160px', height: '46px', duration: '75s', delay: '0s' },
+  { id: 2, top: '18%', width: '110px', height: '34px', duration: '95s', delay: '-20s' },
+  { id: 3, top: '32%', width: '190px', height: '54px', duration: '65s', delay: '-45s' },
+  { id: 4, top: '48%', width: '130px', height: '38px', duration: '110s', delay: '-10s' },
+  { id: 5, top: '62%', width: '150px', height: '44px', duration: '85s', delay: '-60s' },
+  { id: 6, top: '76%', width: '100px', height: '30px', duration: '70s', delay: '-30s' }
+]
 
 const mapEl = ref(null)
 const loading = ref(true)
@@ -2022,6 +2051,44 @@ onMounted(async () => {
 #map {
   width: 100%;
   height: 100%;
+}
+
+/* 演出用の雲レイヤー。地図・UIどちらの操作も邪魔しないよう、
+   クリックは常に貫通させ(pointer-events: none)、UIパネル(z-index:1000)
+   より下、地図タイルより上に置く */
+.cloud-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 500;
+}
+
+.cloud-sprite {
+  position: absolute;
+  left: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  filter: blur(10px);
+  /* box-shadowの複製で、単なる楕円より少しふわふわした雲らしい輪郭にする */
+  box-shadow:
+    30% -35% 0 -8px rgba(255, 255, 255, 0.5),
+    60% 10% 0 -12px rgba(255, 255, 255, 0.4),
+    -20% 20% 0 -14px rgba(255, 255, 255, 0.4);
+  /* 「ごく薄い」濃さ：地図の視認性を優先し、雲と分かる程度に留める */
+  opacity: 0.16;
+  animation-name: cloud-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-30%);
+  }
+  to {
+    transform: translateX(130vw);
+  }
 }
 
 /* #mapはdir="ltr"固定にしてLeaflet内部の位置計算(transform)を常にLTR前提で
