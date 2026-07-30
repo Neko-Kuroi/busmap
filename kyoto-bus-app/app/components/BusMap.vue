@@ -2068,20 +2068,23 @@ onMounted(async () => {
   position: absolute;
   left: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.8);
-  filter: blur(6px);
-  /* box-shadowのオフセットは%ではなくpxでないと無効になる(仕様上、
-     1つでも不正な値があると宣言全体が無視される)ため、px指定にする。
-     複数個ずらして重ねることで、単なる楕円より雲らしい輪郭にする */
-  box-shadow:
-    36px -14px 0 -6px rgba(255, 255, 255, 0.8),
-    72px 6px 0 -10px rgba(255, 255, 255, 0.7),
-    -24px 8px 0 -10px rgba(255, 255, 255, 0.7);
+  /* filter:blurは合成コストが高いため使わず、中心から外側へ透明になる
+     グラデーションだけで柔らかい輪郭を表現する（塗りつぶし処理だけなので
+     blurフィルターより軽い。box-shadowの複製も不要になる） */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.55) 35%,
+    rgba(255, 255, 255, 0) 72%
+  );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
   opacity: 0.35;
   animation-name: cloud-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  /* transformのみのアニメーションであることをブラウザに伝え、GPU合成の
+     専用レイヤーとして扱わせる（描画のたびの再計算を避けて軽くする） */
+  will-change: transform;
 }
 
 @keyframes cloud-drift {
