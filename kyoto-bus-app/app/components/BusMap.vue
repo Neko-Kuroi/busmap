@@ -2078,7 +2078,7 @@ onMounted(async () => {
     rgba(255, 255, 255, 0) 72%
   );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
-  opacity: 0.35;
+  opacity: 0.45;
   animation-name: cloud-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
