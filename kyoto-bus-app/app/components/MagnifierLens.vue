@@ -89,8 +89,12 @@ const lensStyle = computed(() => ({
 // レンズ内の複製コンテンツは常にビューポート全体サイズで固定表示し、
 // transform-originをレンズの中心座標に合わせて2倍拡大することで、
 // 「レンズの中心にある地点を軸に2倍に見える」状態を作る
+// const contentStyle = computed(() => ({
+//   transformOrigin: `${centerX.value}px ${centerY.value}px`
+// }))
 const contentStyle = computed(() => ({
-  transformOrigin: `${centerX.value}px ${centerY.value}px`
+  transformOrigin: `${centerX.value}px ${centerY.value}px`,
+  clipPath: `circle(${radius.value / 2}px at ${centerX.value}px ${centerY.value}px)`
 }))
 
 function onPointerDown(e) {
