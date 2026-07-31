@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
   top: 0;
   width: 100vw;
   height: 100vh;
-  transform: scale(2);
+  transform: scale(2.5);
   pointer-events: none;
   will-change: transform;
 }
