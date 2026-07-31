@@ -262,8 +262,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.95);
   box-shadow:
-    /* 0 0 0 1.5px rgba(0, 0, 0, 0.45), */
-    0 4px 18px rgba(0, 0, 0, 0.4);
+    0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 4px 18px rgba(100, 100, 100, 0.4);
   cursor: grab;
   z-index: 999999;
   touch-action: none;
