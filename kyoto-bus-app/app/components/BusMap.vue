@@ -2978,7 +2978,7 @@ onMounted(async () => {
 }
 
 :deep(.stop-mini-tooltip) {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
@@ -2989,7 +2989,7 @@ onMounted(async () => {
 /* ランドマーク(紫アイコン)の常時番号ラベル。何件目に登録したかが
    アイコンの色(#7c3aed)に合わせた枠線ですぐ分かるようにする */
 :deep(.landmark-count-tooltip) {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
@@ -3002,7 +3002,7 @@ onMounted(async () => {
 /* クリックピン(水色アイコン)の常時番号ラベル。アイコンの色(#0ea5e9)に
    合わせた枠線にして、ランドマークの紫ラベルと見分けられるようにする */
 :deep(.clicked-pin-count-tooltip) {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
@@ -3015,7 +3015,7 @@ onMounted(async () => {
 /* 記録した停留所(緑アイコン)の常時ラベル。アイコンの色(#84cc16)に
    合わせた枠線にして、星マーカーの白ラベルと見分けられるようにする */
 :deep(.saved-stop-tooltip) {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
@@ -3098,7 +3098,7 @@ onMounted(async () => {
 
 :deep(.stop-name) {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 20px;
   margin: 0;
 }
 
