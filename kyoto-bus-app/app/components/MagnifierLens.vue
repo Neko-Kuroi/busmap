@@ -40,20 +40,35 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-// 中心座標が画面端からどれだけ外にはみ出せるか（px）。
-// 「直径のminVisibleFraction割合だけ画面内に残す」を満たす値を、
-// 円のバウンディングボックス基準で近似計算する
+// 中心が画面の矩形からどれだけ離れられるか（px）。
+// 「円の直径のminVisibleFraction割合だけ常に画面内に残す」を満たす最大距離
 function overflowAllowance() {
   return radius.value * (1 - 2 * props.minVisibleFraction)
 }
 
+// 円と画面矩形の位置関係を「中心から画面矩形上の最も近い点までのユークリッド距離」で
+// 判定する。X軸・Y軸を別々にクランプすると、角にドラッグしたときだけ実際の重なりが
+// 極端に小さくなってしまう（円は四角ではないため）。距離ベースにすることで、
+// 辺でも角でも常に同じだけの「めり込み量」が保たれる
 function clampPosition(x, y) {
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const allowance = overflowAllowance()
+  const maxDist = overflowAllowance()
+
+  const nearestX = clamp(x, 0, vw)
+  const nearestY = clamp(y, 0, vh)
+  const dx = x - nearestX
+  const dy = y - nearestY
+  const dist = Math.sqrt(dx * dx + dy * dy)
+
+  if (dist <= maxDist) {
+    return { x, y }
+  }
+
+  const scale = maxDist / dist
   return {
-    x: clamp(x, -allowance, vw + allowance),
-    y: clamp(y, -allowance, vh + allowance)
+    x: nearestX + dx * scale,
+    y: nearestY + dy * scale
   }
 }
 
@@ -109,6 +124,35 @@ function handleResize() {
   centerY.value = y
 }
 
+// #magnify-target の中には（BusMap.vueの各種UIパネルなど）position:fixedの要素が
+// 複数ある。祖先(.magnifier-content)にtransformをかけると、CSSの仕様上それらの
+// position:fixedな子孫は「画面全体」ではなく祖先要素を基準に位置決めされるように
+// 変わってしまい、拡大結果が壊れて見える。
+// そのため、複製した側だけposition:fixedをabsoluteに変換し、元の要素の実座標
+// （getBoundingClientRectで取得した画面上の実ピクセル位置）をそのまま固定値として
+// 焼き込むことで、他のコンテンツと同じ座標系のまま一緒に拡大されるようにする
+function neutralizeFixedDescendants(originalRoot, clonedRoot) {
+  const originalEls = originalRoot.querySelectorAll('*')
+  const clonedEls = clonedRoot.querySelectorAll('*')
+
+  originalEls.forEach((origEl, i) => {
+    const clonedEl = clonedEls[i]
+    if (!clonedEl) return
+    const computed = window.getComputedStyle(origEl)
+    if (computed.position !== 'fixed') return
+
+    const rect = origEl.getBoundingClientRect()
+    clonedEl.style.position = 'absolute'
+    clonedEl.style.left = `${rect.left}px`
+    clonedEl.style.top = `${rect.top}px`
+    clonedEl.style.right = 'auto'
+    clonedEl.style.bottom = 'auto'
+    clonedEl.style.width = `${rect.width}px`
+    clonedEl.style.height = `${rect.height}px`
+    clonedEl.style.margin = '0'
+  })
+}
+
 // #magnify-target を複製してレンズの中身として差し込む。
 // canvas要素はcloneNode(true)では描画済みピクセルがコピーされないため、
 // 元のcanvasから手動でdrawImageし直す
@@ -118,6 +162,8 @@ function refreshClone() {
   if (!target || !wrapper) return
 
   const clone = target.cloneNode(true)
+
+  neutralizeFixedDescendants(target, clone)
 
   const originalCanvases = target.querySelectorAll('canvas')
   const clonedCanvases = clone.querySelectorAll('canvas')
