@@ -13,8 +13,8 @@
         class="cloud-sprite"
         :style="{
           top: cloud.top,
-          width: cloud.width,
-          height: cloud.height,
+          width: (cloud.width * CLOUD_SCALE) + 'px',
+          height: (cloud.height * CLOUD_SCALE) + 'px',
           animationDuration: cloud.duration,
           animationDelay: cloud.delay
         }"
@@ -296,13 +296,16 @@ watch(locale, (newLocale) => {
 // 演出用の雲。地理座標には紐付けず、画面上をゆっくり流れるだけの
 // 純粋な見た目の効果。個体ごとに高さ・大きさ・速度・開始タイミングを
 // ずらして、単調な繰り返しに見えないようにする
+// 雲全体のサイズ倍率。この数値だけ変えれば全ての雲が一括で拡大縮小される
+const CLOUD_SCALE = 2.4
+
 const CLOUD_SPRITES = [
-  { id: 1, top: '8%', width: '160px', height: '46px', duration: '75s', delay: '0s' },
-  { id: 2, top: '18%', width: '110px', height: '34px', duration: '95s', delay: '-20s' },
-  { id: 3, top: '32%', width: '190px', height: '54px', duration: '65s', delay: '-45s' },
-  { id: 4, top: '48%', width: '130px', height: '38px', duration: '110s', delay: '-10s' },
-  { id: 5, top: '62%', width: '150px', height: '44px', duration: '85s', delay: '-60s' },
-  { id: 6, top: '76%', width: '100px', height: '30px', duration: '70s', delay: '-30s' }
+  { id: 1, top: '8%', width: 160, height: 46, duration: '75s', delay: '0s' },
+  { id: 2, top: '18%', width: 110, height: 34, duration: '95s', delay: '-20s' },
+  { id: 3, top: '32%', width: 190, height: 54, duration: '65s', delay: '-45s' },
+  { id: 4, top: '48%', width: 130, height: 38, duration: '110s', delay: '-10s' },
+  { id: 5, top: '62%', width: 150, height: 44, duration: '85s', delay: '-60s' },
+  { id: 6, top: '76%', width: 100, height: 30, duration: '70s', delay: '-30s' }
 ]
 
 const mapEl = ref(null)
