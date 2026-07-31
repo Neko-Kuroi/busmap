@@ -25,7 +25,7 @@ const props = defineProps({
   // 初期表示時に画面内に見せておく割合（直径に対する比率）
   initialVisibleFraction: { type: Number, default: 0.3 },
   // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
-  refreshInterval: { type: Number, default: 500 }
+  refreshInterval: { type: Number, default: 300 }
 })
 
 const lensRef = ref(null)
@@ -216,7 +216,7 @@ function syncFormState(originalRoot, clonedRoot) {
 // }
 function refreshClone() {
   const target = document.querySelector(props.targetSelector)
-  // const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
+  const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
   const inactiveEl = activeBuffer.value === 'a' ? bufferBRef.value : bufferARef.value
   if (!target || !inactiveEl) return
 
@@ -263,8 +263,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 0 0 1.5px rgba(255, 255, 255, 0.45),
-    0 4px 18px rgba(50, 50, 100, 0.65);
+    /* 0 0 0 1.5px rgba(255, 255, 255, 0.45), */
+    0 4px 10px rgba(50, 50, 50, 0.65);
   cursor: grab;
   z-index: 999999;
   touch-action: none;
