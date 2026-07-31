@@ -3098,7 +3098,7 @@ onMounted(async () => {
 
 :deep(.stop-name) {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px;
   margin: 0;
 }
 
