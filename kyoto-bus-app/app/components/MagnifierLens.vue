@@ -185,6 +185,61 @@ function syncFormState(originalRoot, clonedRoot) {
   })
 }
 
+function waitForTileImages(root) {
+  const imgs = Array.from(root.querySelectorAll('img'))
+  const pending = imgs.filter((img) => !img.complete)
+  if (pending.length === 0) return Promise.resolve()
+
+  return Promise.race([
+    Promise.all(
+      pending.map(
+        (img) =>
+          new Promise((resolve) => {
+            img.addEventListener('load', resolve, { once: true })
+            img.addEventListener('error', resolve, { once: true })
+          })
+      )
+    ),
+    // 一部タイルがいつまでも読み込めない場合に備えたタイムアウト
+    new Promise((resolve) => setTimeout(resolve, 300))
+  ])
+
+let isRefreshing = false
+
+async function refreshClone() {
+  if (isRefreshing) return // 前回の待機がまだ終わっていなければ今回はスキップ
+  isRefreshing = true
+
+  try {
+    const target = document.querySelector(props.targetSelector)
+    const inactiveEl = activeBuffer.value === 'a' ? bufferBRef.value : bufferARef.value
+    if (!target || !inactiveEl) return
+
+    const clone = target.cloneNode(true)
+    neutralizeFixedDescendants(target, clone)
+    syncFormState(target, clone)
+
+    const originalCanvases = target.querySelectorAll('canvas')
+    const clonedCanvases = clone.querySelectorAll('canvas')
+    originalCanvases.forEach((origCanvas, i) => {
+      const clonedCanvas = clonedCanvases[i]
+      if (!clonedCanvas) return
+      clonedCanvas.width = origCanvas.width
+      clonedCanvas.height = origCanvas.height
+      const ctx = clonedCanvas.getContext('2d')
+      if (ctx) ctx.drawImage(origCanvas, 0, 0)
+    })
+
+    await waitForTileImages(clone)
+
+    inactiveEl.innerHTML = ''
+    inactiveEl.appendChild(clone)
+
+    activeBuffer.value = activeBuffer.value === 'a' ? 'b' : 'a'
+  } finally {
+    isRefreshing = false
+  }
+}
 // #magnify-target を複製してレンズの中身として差し込む。
 // canvas要素はcloneNode(true)では描画済みピクセルがコピーされないため、
 // 元のcanvasから手動でdrawImageし直す
@@ -214,32 +269,32 @@ function syncFormState(originalRoot, clonedRoot) {
 //   wrapper.innerHTML = ''
 //   wrapper.appendChild(clone)
 // }
-function refreshClone() {
-  const target = document.querySelector(props.targetSelector)
-  const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
-  const inactiveEl = activeBuffer.value === 'a' ? bufferBRef.value : bufferARef.value
-  if (!target || !inactiveEl) return
+// function refreshClone() {
+//   const target = document.querySelector(props.targetSelector)
+//   const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
+//   const inactiveEl = activeBuffer.value === 'a' ? bufferBRef.value : bufferARef.value
+//   if (!target || !inactiveEl) return
 
-  const clone = target.cloneNode(true)
-  neutralizeFixedDescendants(target, clone)
-  syncFormState(target, clone)
+//   const clone = target.cloneNode(true)
+//   neutralizeFixedDescendants(target, clone)
+//   syncFormState(target, clone)
   
-  const originalCanvases = target.querySelectorAll('canvas')
-  const clonedCanvases = clone.querySelectorAll('canvas')
-  originalCanvases.forEach((origCanvas, i) => {
-    const clonedCanvas = clonedCanvases[i]
-    if (!clonedCanvas) return
-    clonedCanvas.width = origCanvas.width
-    clonedCanvas.height = origCanvas.height
-    const ctx = clonedCanvas.getContext('2d')
-    if (ctx) ctx.drawImage(origCanvas, 0, 0)
-  })
+//   const originalCanvases = target.querySelectorAll('canvas')
+//   const clonedCanvases = clone.querySelectorAll('canvas')
+//   originalCanvases.forEach((origCanvas, i) => {
+//     const clonedCanvas = clonedCanvases[i]
+//     if (!clonedCanvas) return
+//     clonedCanvas.width = origCanvas.width
+//     clonedCanvas.height = origCanvas.height
+//     const ctx = clonedCanvas.getContext('2d')
+//     if (ctx) ctx.drawImage(origCanvas, 0, 0)
+//   })
 
-  inactiveEl.innerHTML = ''
-  inactiveEl.appendChild(clone)
+//   inactiveEl.innerHTML = ''
+//   inactiveEl.appendChild(clone)
 
-  activeBuffer.value = activeBuffer.value === 'a' ? 'b' : 'a'
-}
+//   activeBuffer.value = activeBuffer.value === 'a' ? 'b' : 'a'
+// }
 
 onMounted(() => {
   setDefaultPosition()
