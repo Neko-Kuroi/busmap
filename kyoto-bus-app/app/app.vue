@@ -2,10 +2,7 @@
   <div>
     <NuxtRouteAnnouncer />
     <ClientOnly>
-      <div id="magnify-target">
-        <BusMap />
-      </div>
-      <MagnifierLens />
+      <BusMap />
     </ClientOnly>
   </div>
 </template>
