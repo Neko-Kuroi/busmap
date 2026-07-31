@@ -216,7 +216,7 @@ function syncFormState(originalRoot, clonedRoot) {
 // }
 function refreshClone() {
   const target = document.querySelector(props.targetSelector)
-  const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
+  // const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
   const inactiveEl = activeBuffer.value === 'a' ? bufferBRef.value : bufferARef.value
   if (!target || !inactiveEl) return
 
