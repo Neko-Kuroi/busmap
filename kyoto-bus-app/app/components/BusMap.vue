@@ -1078,7 +1078,9 @@ function refreshPopupsForLocale() {
     if (entry.starMarker) {
       entry.starMarker.setPopupContent(html)
       if (entry.starMarker.getTooltip()) {
-        entry.starMarker.setTooltipContent(buildMiniStopLabel(entry.stops[0], entry.stops.length))
+        // activeStopは現在ハイライト中の系統が実際に指す（＝正しい事業者の）stop。
+        // 無ければ（通常発生しないはずだが念のため）stops[0]にフォールバックする
+        entry.starMarker.setTooltipContent(buildMiniStopLabel(entry.activeStop || entry.stops[0], entry.stops.length))
       }
     }
   }
@@ -1226,11 +1228,14 @@ function saveHistoryToStorage() {
 
 // 停留所（黄色ドット・星どちらでも）のポップアップが開いた瞬間に呼ばれる。
 // 同じcoordKeyが既に履歴にあれば新規追加せず、日時だけ更新して先頭に繰り上げる
-// （ブラウザの閲覧履歴と同じ挙動）。直近HISTORY_LIMIT件を超えたら古い順に削除する
-function recordHistory(coordKey) {
+// （ブラウザの閲覧履歴と同じ挙動）。直近HISTORY_LIMIT件を超えたら古い順に削除する。
+// preferredStopは星（ハイライト中の系統）から呼ばれた場合のentry.activeStop。
+// 黄色ドット（系統未選択の生データ）からの呼び出しでは事業者の取捨選択が
+// 存在しないため、その場合のみstops[0]にフォールバックする
+function recordHistory(coordKey, preferredStop) {
   const entry = groupsByCoordKey[coordKey]
   if (!entry) return
-  const first = entry.stops[0]
+  const first = preferredStop || entry.stops[0]
   const otherCount = entry.stops.length - 1
 
   const existingIndex = viewHistory.value.findIndex(h => h.coordKey === coordKey)
@@ -1679,8 +1684,14 @@ function renderHighlight(route, anchorStopId) {
       marker._coordKey = coordKey
       marker.on('click', () => showPoisForCoord(coordKey))
 
+      // ユーザーが選んだ「この系統」がこの座標で指しているstopは`stop`（この
+      // for文のroute.stopIdsから解決済み）であり、事業者は既に確定している。
+      // groupStops[0]（座標が同じ全事業者・全系統のレコードの先頭）を使うと、
+      // 選んだ事業者にはひらがな属性があっても、別事業者のレコードがたまたま
+      // 先頭に来ていた場合そちらが優先されてしまう不具合になるため使わない
       const groupStops = entry ? entry.stops : [stop]
-      marker.bindTooltip(buildMiniStopLabel(groupStops[0], groupStops.length), {
+      if (entry) entry.activeStop = stop
+      marker.bindTooltip(buildMiniStopLabel(stop, groupStops.length), {
         permanent: true,
         direction: 'top',
         offset: [0, -half],
@@ -1779,9 +1790,15 @@ onMounted(async () => {
     }
 
     // 黄色ドット・星どちらのポップアップが開いても、その座標を履歴に記録する
-    // （ランドマーク・現在地マーカーには_coordKeyが無いので対象外）
+    // （ランドマーク・現在地マーカーには_coordKeyが無いので対象外）。
+    // 星（_highlightStopIdあり）の場合は、選択中の系統が指す正しい事業者の
+    // stop（entry.activeStop）を優先して渡す。黄色ドットはstops[0]のまま
     if (marker._coordKey != null) {
-      recordHistory(marker._coordKey)
+      const entryForHistory = groupsByCoordKey[marker._coordKey]
+      const preferredStop = marker._highlightStopId != null && entryForHistory
+        ? entryForHistory.activeStop
+        : null
+      recordHistory(marker._coordKey, preferredStop)
       popupOpenCoordKey = marker._coordKey
     }
   })
@@ -1808,7 +1825,9 @@ onMounted(async () => {
     if (highlightMarkersById[id] !== marker) return
     if (marker.getTooltip()) return
     const entry = marker._coordKey != null ? groupsByCoordKey[marker._coordKey] : null
-    const stop = entry ? entry.stops[0] : stopsById[id]
+    // activeStopは現在ハイライト中の系統が実際に指す（＝正しい事業者の）stop。
+    // stops[0]は座標が同じ全事業者・全系統のレコードが混ざっているため使わない
+    const stop = entry ? (entry.activeStop || entry.stops[0]) : stopsById[id]
     if (!stop) return
     marker.bindTooltip(buildMiniStopLabel(stop, entry ? entry.stops.length : 1), {
       permanent: true,
@@ -2005,6 +2024,10 @@ onMounted(async () => {
       stops: group,
       baseMarker: null,
       starMarker: null,
+      // 現在ハイライト中の系統が実際に指しているstopレコード（＝正しい事業者のデータ）。
+      // 星のミニtooltipはこれを使う。stops[0]は座標が同じ全事業者・全系統の
+      // レコードが混ざっているため、事業者取捨選択後の表示に使ってはいけない
+      activeStop: null,
       nearbyPois: nearbyPoisByCoord[coordKey] || null
     }
   }
