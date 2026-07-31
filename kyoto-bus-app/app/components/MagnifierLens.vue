@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
-  transition: opacity 0.08s linear;
+  /* transition: opacity 0.08s linear; */
 }
 
 .magnifier-content.active {
