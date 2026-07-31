@@ -17,7 +17,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   // レンズの直径(px)。デフォルトは大きめ
-  diameter: { type: Number, default: 250 },
+  diameter: { type: Number, default: 400 },
   // 拡大対象のルート要素を指すセレクタ（画面全体＝UIも含む）
   targetSelector: { type: String, default: '#magnify-target' },
   // 画面外にドラッグしたとき、最低限画面内に残す割合（直径に対する比率）
