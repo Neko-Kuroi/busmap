@@ -157,6 +157,24 @@ function neutralizeFixedDescendants(originalRoot, clonedRoot) {
   })
 }
 
+function syncFormState(originalRoot, clonedRoot) {
+  const originalEls = originalRoot.querySelectorAll('select, input, textarea')
+  const clonedEls = clonedRoot.querySelectorAll('select, input, textarea')
+
+  originalEls.forEach((origEl, i) => {
+    const clonedEl = clonedEls[i]
+    if (!clonedEl) return
+    if (origEl.tagName === 'SELECT') {
+      clonedEl.selectedIndex = origEl.selectedIndex
+    } else {
+      clonedEl.value = origEl.value
+      if (origEl.type === 'checkbox' || origEl.type === 'radio') {
+        clonedEl.checked = origEl.checked
+      }
+    }
+  })
+}
+
 // #magnify-target を複製してレンズの中身として差し込む。
 // canvas要素はcloneNode(true)では描画済みピクセルがコピーされないため、
 // 元のcanvasから手動でdrawImageし直す
@@ -167,6 +185,9 @@ function refreshClone() {
 
   const clone = target.cloneNode(true)
 
+  neutralizeFixedDescendants(target, clone)
+  syncFormState(target, clone)
+  
   neutralizeFixedDescendants(target, clone)
 
   const originalCanvases = target.querySelectorAll('canvas')
@@ -206,7 +227,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 0 0 1.5px rgba(0, 0, 0, 0.45),
+    /* 0 0 0 1.5px rgba(0, 0, 0, 0.45), */
     0 4px 18px rgba(0, 0, 0, 0.4);
   cursor: grab;
   z-index: 999999;
