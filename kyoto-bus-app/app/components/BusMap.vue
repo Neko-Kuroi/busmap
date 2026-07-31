@@ -235,7 +235,7 @@ function gsiSeamlessPhotoTile() {
     options: {
       attribution: '© 国土地理院',
       maxZoom: 21,
-      minZoom: 16,
+      minZoom: 17,
       opacity: 0.75,
       // GSIのシームレス写真タイル自体はズームレベル18までしか実データが無いため、
       // maxZoomをGoogle衛星写真と揃えて21のままにする場合、19〜21はLeafletが
