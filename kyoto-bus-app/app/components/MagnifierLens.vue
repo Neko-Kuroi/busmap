@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
   transform: scale(2);
   pointer-events: none;
   will-change: transform;
-  /* opacity: 0; */
+  opacity: 1;
 }
 
 .magnifier-content.active {
