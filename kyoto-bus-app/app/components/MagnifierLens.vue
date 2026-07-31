@@ -77,7 +77,7 @@ function clampPosition(x, y) {
 // デフォルト位置: 画面左側に、クランプ限界までギリギリ寄せた位置。縦は画面中央
 function setDefaultPosition() {
   const vh = window.innerHeight
-  // centerX.value = -overflowAllowance() //
+  // centerX.value = -overflowAllowance()
   // 可視割合fのとき、中心座標は radius * (2f - 1) になる
   // (f=0.5で中心が画面端、f=1で完全に画面内、f=0で完全に画面外という直線関係)
   centerX.value = radius.value * (2 * props.initialVisibleFraction - 1)
