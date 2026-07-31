@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   /* border: 3px solid rgba(255, 255, 255, 0.95);*/
   box-shadow:
-    0 0 0 1px rgba(100, 100, 100, 0.45),
+    0 0 0 3px rgba(255, 255, 255, 0.45),
     0 4px 18px rgba(100, 100, 100, 0.3);
   cursor: grab;
   z-index: 999999;
@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
   top: 0;
   width: 100vw;
   height: 100vh;
-  transform: scale(2.5);
+  transform: scale(2);
   pointer-events: none;
   will-change: transform;
 }
