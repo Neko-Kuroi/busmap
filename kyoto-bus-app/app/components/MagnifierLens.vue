@@ -260,10 +260,10 @@ onBeforeUnmount(() => {
   position: fixed;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid rgba(255, 255, 255, 0.75);
+  border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 0 0 4px rgba(255, 255, 255, 0.45),
-    0 4px 18px rgba(100, 100, 100, 0.3);
+    0 0 0 1.5px rgba(255, 255, 255, 0.45),
+    0 4px 18px rgba(100, 100, 100, 0.5);
   cursor: grab;
   z-index: 999999;
   touch-action: none;
