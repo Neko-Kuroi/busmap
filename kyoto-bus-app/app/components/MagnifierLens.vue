@@ -292,9 +292,7 @@ onBeforeUnmount(() => {
   height: 100vh;
   transform: scale(2);
   pointer-events: none;
-  will-change: transform, opacity;
-  opacity: 0;
-  /* transition: opacity 0.08s linear; */
+  will-change: transform;
 }
 
 .magnifier-content.active {
