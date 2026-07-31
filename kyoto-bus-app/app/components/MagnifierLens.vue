@@ -222,7 +222,8 @@ function refreshClone() {
 
   const clone = target.cloneNode(true)
   neutralizeFixedDescendants(target, clone)
-
+  syncFormState(target, clone)
+  
   const originalCanvases = target.querySelectorAll('canvas')
   const clonedCanvases = clone.querySelectorAll('canvas')
   originalCanvases.forEach((origCanvas, i) => {
@@ -293,6 +294,7 @@ onBeforeUnmount(() => {
   transform: scale(2);
   pointer-events: none;
   will-change: transform;
+  opacity: 0;
 }
 
 .magnifier-content.active {
