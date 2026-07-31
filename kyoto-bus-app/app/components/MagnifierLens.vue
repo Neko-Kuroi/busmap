@@ -203,6 +203,7 @@ function waitForTileImages(root) {
     // 一部タイルがいつまでも読み込めない場合に備えたタイムアウト
     new Promise((resolve) => setTimeout(resolve, 300))
   ])
+}
 
 let isRefreshing = false
 
