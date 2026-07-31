@@ -221,7 +221,7 @@ function refreshClone() {
   if (!target || !inactiveEl) return
 
   const clone = target.cloneNode(true)
-  neutralizeFixedDescendants(target, clone)
+  // neutralizeFixedDescendants(target, clone)
   syncFormState(target, clone)
   
   const originalCanvases = target.querySelectorAll('canvas')
@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
   transform: scale(2);
   pointer-events: none;
   will-change: transform;
-  opacity: 1;
+  opacity: 0;
 }
 
 .magnifier-content.active {
