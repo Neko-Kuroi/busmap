@@ -25,7 +25,7 @@ const props = defineProps({
   // 初期表示時に画面内に見せておく割合（直径に対する比率）
   initialVisibleFraction: { type: Number, default: 0.6 },
   // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
-  refreshInterval: { type: Number, default: 600 }
+  refreshInterval: { type: Number, default: 250 }
 })
 
 const lensRef = ref(null)
@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
   top: 0;
   width: 100vw;
   height: 100vh;
-  transform: scale(2);
+  transform: scale(2.5);
   pointer-events: none;
   will-change: transform;
 }
