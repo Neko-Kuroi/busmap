@@ -221,7 +221,7 @@ function refreshClone() {
   if (!target || !inactiveEl) return
 
   const clone = target.cloneNode(true)
-  // neutralizeFixedDescendants(target, clone)
+  neutralizeFixedDescendants(target, clone)
   syncFormState(target, clone)
   
   const originalCanvases = target.querySelectorAll('canvas')
