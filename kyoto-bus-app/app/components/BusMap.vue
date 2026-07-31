@@ -1601,8 +1601,8 @@ function buildGroupedPopupHtml(coordKey, pageIndex) {
   </div>`
 }
 
-const BASE_OPACITY = 0.55
-const DIMMED_OPACITY = 0.55
+const BASE_OPACITY = 0.65
+const DIMMED_OPACITY = 0.65
 
 // markerClusterGroupのdisableClusteringAtZoomと、zoomendハンドラでの
 // アイコン更新ループの両方から参照する共有定数。2箇所に同じ値を別々に
@@ -2104,7 +2104,7 @@ onMounted(async () => {
     rgba(255, 255, 255, 0) 72%
   );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
-  opacity: 0.25;
+  opacity: 0.35;
   animation-name: cloud-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
