@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 0 0 20px rgba(255, 255, 255, 0.95),
+    0 0 0 2px rgba(255, 255, 255, 0.95),
     0 4px 24px rgba(50, 50, 50, 0.65);
   cursor: grab;
   z-index: 1000000;
