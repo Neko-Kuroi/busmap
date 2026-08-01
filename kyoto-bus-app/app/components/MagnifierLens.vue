@@ -24,7 +24,7 @@ const props = defineProps({
   // 初期表示時に画面内に見せておく割合（直径に対する比率）
   initialVisibleFraction: { type: Number, default: 0.3 },
   // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
-  refreshInterval: { type: Number, default: 500 }
+  refreshInterval: { type: Number, default: 300 }
 })
 
 const lensRef = ref(null)
