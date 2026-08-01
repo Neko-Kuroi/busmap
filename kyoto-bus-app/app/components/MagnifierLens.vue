@@ -15,7 +15,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   // レンズの直径(px)。デフォルトは大きめ
-  diameter: { type: Number, default: 200 },
+  diameter: { type: Number, default: 250 },
   // 拡大対象のルート要素を指すセレクタ（画面全体＝UIも含む）
   targetSelector: { type: String, default: '#magnify-target' },
   // 画面外にドラッグしたとき、最低限画面内に残す割合（直径に対する比率）
@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    /* 0 0 0 4px rgba(255, 255, 255, 0.95), */
+    0 0 0 4px rgba(255, 255, 255, 0.95),
     0 4px 10px rgba(50, 50, 50, 0.65);
   cursor: grab;
   z-index: 1000000;
