@@ -2978,7 +2978,7 @@ onMounted(async () => {
 }
 
 :deep(.stop-mini-tooltip) {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
