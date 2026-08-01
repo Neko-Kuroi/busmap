@@ -13,17 +13,26 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
+// const props = defineProps({
+//   // レンズの直径(px)。デフォルトは大きめ
+//   diameter: { type: Number, default: 250 },
+//   // 拡大対象のルート要素を指すセレクタ（画面全体＝UIも含む）
+//   targetSelector: { type: String, default: '#magnify-target' },
+//   // 画面外にドラッグしたとき、最低限画面内に残す割合（直径に対する比率）
+//   minVisibleFraction: { type: Number, default: 0.2 },
+//   // 初期表示時に画面内に見せておく割合（直径に対する比率）
+//   initialVisibleFraction: { type: Number, default: 0.4 },
+//   // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
+//   refreshInterval: { type: Number, default: 350 }
+// })
 const props = defineProps({
-  // レンズの直径(px)。デフォルトは大きめ
-  diameter: { type: Number, default: 250 },
-  // 拡大対象のルート要素を指すセレクタ（画面全体＝UIも含む）
+  diameter: { type: Number, default: 200 },
   targetSelector: { type: String, default: '#magnify-target' },
-  // 画面外にドラッグしたとき、最低限画面内に残す割合（直径に対する比率）
   minVisibleFraction: { type: Number, default: 0.2 },
-  // 初期表示時に画面内に見せておく割合（直径に対する比率）
   initialVisibleFraction: { type: Number, default: 0.4 },
-  // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
-  refreshInterval: { type: Number, default: 350 }
+  refreshInterval: { type: Number, default: 350 },
+  // レンズ内の拡大率
+  zoomFactor: { type: Number, default: 2.5 }
 })
 
 const lensRef = ref(null)
@@ -104,9 +113,14 @@ const lensStyle = computed(() => ({
 // const contentStyle = computed(() => ({
 //   transformOrigin: `${centerX.value}px ${centerY.value}px`
 // }))
+// const contentStyle = computed(() => ({
+//   transformOrigin: `${centerX.value}px ${centerY.value}px`,
+//   clipPath: `circle(${radius.value / 2}px at ${centerX.value}px ${centerY.value}px)`
+// }))
 const contentStyle = computed(() => ({
+  transform: `scale(${props.zoomFactor})`,
   transformOrigin: `${centerX.value}px ${centerY.value}px`,
-  clipPath: `circle(${radius.value / 2}px at ${centerX.value}px ${centerY.value}px)`
+  clipPath: `circle(${radius.value / props.zoomFactor}px at ${centerX.value}px ${centerY.value}px)`
 }))
 
 function onPointerDown(e) {
@@ -307,7 +321,7 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 
-.magnifier-content {
+/* .magnifier-content {
   position: fixed;
   left: 0;
   top: 0;
@@ -318,8 +332,18 @@ onBeforeUnmount(() => {
   will-change: transform;
   opacity: 0;
   z-index: 999999;
+} */
+.magnifier-content {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  will-change: transform;
+  opacity: 0;
+  z-index: 999999;
 }
-
 .magnifier-content.active {
   opacity: 1;
 }
