@@ -297,7 +297,7 @@ watch(locale, (newLocale) => {
 // 純粋な見た目の効果。個体ごとに高さ・大きさ・速度・開始タイミングを
 // ずらして、単調な繰り返しに見えないようにする
 // 雲全体のサイズ倍率。この数値だけ変えれば全ての雲が一括で拡大縮小される
-const CLOUD_SCALE = 3.5
+const CLOUD_SCALE = 1.5
 
 const CLOUD_SPRITES = [
   { id: 1, top: '8%', width: 160, height: 46, duration: '75s', delay: '0s' },
