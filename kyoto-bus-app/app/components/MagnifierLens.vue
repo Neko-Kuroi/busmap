@@ -88,11 +88,16 @@ function setDefaultPosition() {
   centerY.value = vh / 2
 }
 
+// const lensStyle = computed(() => ({
+//   width: `${props.diameter}px`,
+//   height: `${props.diameter}px`,
+//   left: `${centerX.value - radius.value}px`,
+//   top: `${centerY.value - radius.value}px`
+// }))
 const lensStyle = computed(() => ({
   width: `${props.diameter}px`,
   height: `${props.diameter}px`,
-  left: `${centerX.value - radius.value}px`,
-  top: `${centerY.value - radius.value}px`
+  transform: `translate3d(${centerX.value - radius.value}px, ${centerY.value - radius.value}px, 0)`
 }))
 
 // レンズ内の複製コンテンツは常にビューポート全体サイズで固定表示し、
@@ -283,7 +288,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.magnifier-lens {
+/* .magnifier-lens {
   position: fixed;
   border-radius: 50%;
   overflow: hidden;
@@ -295,6 +300,23 @@ onBeforeUnmount(() => {
   z-index: 999999;
   touch-action: none;
   background: #eee;
+} */
+
+.magnifier-lens {
+  position: fixed;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    /* 0 0 0 1.5px rgba(255, 255, 255, 0.45), */
+    0 4px 10px rgba(50, 50, 50, 0.65);
+  cursor: grab;
+  z-index: 999999;
+  touch-action: none;
+  background: #eee;
+  will-change: transform;
 }
 
 .magnifier-lens.dragging {
