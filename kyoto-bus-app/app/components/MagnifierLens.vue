@@ -1,14 +1,13 @@
 <template>
+  <div ref="bufferARef" class="magnifier-content" :class="{ active: activeBuffer === 'a' }" :style="contentStyle"></div>
+  <div ref="bufferBRef" class="magnifier-content" :class="{ active: activeBuffer === 'b' }" :style="contentStyle"></div>
   <div
     ref="lensRef"
     class="magnifier-lens"
     :class="{ dragging: isDragging }"
     :style="lensStyle"
     @pointerdown="onPointerDown"
-  >
-    <div ref="bufferARef" class="magnifier-content" :class="{ active: activeBuffer === 'a' }" :style="contentStyle"></div>
-    <div ref="bufferBRef" class="magnifier-content" :class="{ active: activeBuffer === 'b' }" :style="contentStyle"></div>
-  </div>
+  ></div>
 </template>
 
 <script setup>
@@ -293,15 +292,15 @@ onBeforeUnmount(() => {
   left: 0;
   top: 0;
   border-radius: 50%;
-  overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
     /* 0 0 0 4px rgba(255, 255, 255, 0.95), */
     0 4px 10px rgba(50, 50, 50, 0.65);
   cursor: grab;
-  z-index: 999999;
+  z-index: 1000000;
   touch-action: none;
-  background: #eee;
+  background: transparent;
+  pointer-events: auto;
   will-change: transform;
 }
 
@@ -319,6 +318,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
   will-change: transform;
   opacity: 0;
+  z-index: 999999;
 }
 
 .magnifier-content.active {
