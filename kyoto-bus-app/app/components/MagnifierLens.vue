@@ -16,7 +16,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   // レンズの直径(px)。デフォルトは大きめ
-  diameter: { type: Number, default: 250 },
+  diameter: { type: Number, default: 200 },
   // 拡大対象のルート要素を指すセレクタ（画面全体＝UIも含む）
   targetSelector: { type: String, default: '#magnify-target' },
   // 画面外にドラッグしたとき、最低限画面内に残す割合（直径に対する比率）
@@ -24,7 +24,7 @@ const props = defineProps({
   // 初期表示時に画面内に見せておく割合（直径に対する比率）
   initialVisibleFraction: { type: Number, default: 0.4 },
   // 複製(clone)の更新間隔(ms)。画面複製方式なので完全リアルタイムではない
-  refreshInterval: { type: Number, default: 300 }
+  refreshInterval: { type: Number, default: 350 }
 })
 
 const lensRef = ref(null)
