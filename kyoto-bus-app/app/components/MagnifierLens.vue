@@ -29,7 +29,7 @@ const props = defineProps({
   diameter: { type: Number, default: 250 },
   targetSelector: { type: String, default: '#magnify-target' },
   minVisibleFraction: { type: Number, default: 0.2 },
-  initialVisibleFraction: { type: Number, default: 0.4 },
+  initialVisibleFraction: { type: Number, default: 0.8 },
   refreshInterval: { type: Number, default: 350 },
   // レンズ内の拡大率
   zoomFactor: { type: Number, default: 2.5 }
@@ -86,13 +86,24 @@ function clampPosition(x, y) {
 }
 
 // デフォルト位置: 画面左側に、クランプ限界までギリギリ寄せた位置。縦は画面中央
+// function setDefaultPosition() {
+//   const vh = window.innerHeight
+//   // centerX.value = -overflowAllowance()
+//   // 可視割合fのとき、中心座標は radius * (2f - 1) になる
+//   // (f=0.5で中心が画面端、f=1で完全に画面内、f=0で完全に画面外という直線関係)
+//   centerX.value = radius.value * (2 * props.initialVisibleFraction - 1)
+//   centerY.value = vh / 2
+// }
+// デフォルト位置: 画面右下。右端はminVisibleFractionが許す限界まではみ出させ、
+// 下端はレンズの下限を画面下端にぴったり合わせる
 function setDefaultPosition() {
+  const vw = window.innerWidth
   const vh = window.innerHeight
-  // centerX.value = -overflowAllowance()
-  // 可視割合fのとき、中心座標は radius * (2f - 1) になる
-  // (f=0.5で中心が画面端、f=1で完全に画面内、f=0で完全に画面外という直線関係)
-  centerX.value = radius.value * (2 * props.initialVisibleFraction - 1)
-  centerY.value = vh / 2
+  // 可視割合fのとき、右端から中心までの距離は radius * (2f - 1) になる
+  // (f=0.5で中心が右端、f=1で完全に画面内、f=0で完全に画面外という直線関係)
+  centerX.value = vw - radius.value * (2 * props.initialVisibleFraction - 1)
+  // レンズの下端(centerY + radius)が画面下端(vh)に一致する位置
+  centerY.value = vh - radius.value
 }
 
 // const lensStyle = computed(() => ({
@@ -307,7 +318,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(5, 5, 5, 0.95),
     0 4px 10px rgba(50, 50, 50, 0.65);
   cursor: grab;
   z-index: 1000000;
