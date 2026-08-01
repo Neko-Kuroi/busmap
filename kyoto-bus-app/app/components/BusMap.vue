@@ -2855,7 +2855,7 @@ onMounted(async () => {
 :deep(.stop-star-icon) svg {
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
+  /* filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2)); */
 }
 
 /* 星の塗り(#db2777)の上に、ストライプ画像を星型にclip-pathで切り抜いて
@@ -2978,7 +2978,7 @@ onMounted(async () => {
 }
 
 :deep(.stop-mini-tooltip) {
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.3;
   padding: 2px 6px;
   white-space: nowrap;
