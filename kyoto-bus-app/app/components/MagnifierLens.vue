@@ -29,7 +29,7 @@ const props = defineProps({
   diameter: { type: Number, default: 250 },
   targetSelector: { type: String, default: '#magnify-target' },
   minVisibleFraction: { type: Number, default: 0.2 },
-  initialVisibleFraction: { type: Number, default: 0.9 },
+  initialVisibleFraction: { type: Number, default: 0.92 },
   refreshInterval: { type: Number, default: 350 },
   // レンズ内の拡大率
   zoomFactor: { type: Number, default: 2.5 }
@@ -318,7 +318,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 0 0 1px rgba(5, 5, 5, 0.95),
+    0 0 0 0.7px rgba(50, 50, 50, 0.95),
     0 4px 10px rgba(50, 50, 50, 0.65);
   cursor: grab;
   z-index: 1000000;
