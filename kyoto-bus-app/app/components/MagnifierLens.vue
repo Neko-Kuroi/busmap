@@ -27,7 +27,6 @@ const props = defineProps({
 })
 
 const lensRef = ref(null)
-// const contentWrapperRef = ref(null)
 const bufferARef = ref(null)
 const bufferBRef = ref(null)
 const activeBuffer = ref('a')
