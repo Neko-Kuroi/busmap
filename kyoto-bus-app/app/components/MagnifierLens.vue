@@ -6,7 +6,6 @@
     :style="lensStyle"
     @pointerdown="onPointerDown"
   >
-    <!-- <div ref="contentWrapperRef" class="magnifier-content" :style="contentStyle"></div> -->
     <div ref="bufferARef" class="magnifier-content" :class="{ active: activeBuffer === 'a' }" :style="contentStyle"></div>
     <div ref="bufferBRef" class="magnifier-content" :class="{ active: activeBuffer === 'b' }" :style="contentStyle"></div>
   </div>
@@ -241,35 +240,6 @@ async function refreshClone() {
     isRefreshing = false
   }
 }
-// #magnify-target を複製してレンズの中身として差し込む。
-// canvas要素はcloneNode(true)では描画済みピクセルがコピーされないため、
-// 元のcanvasから手動でdrawImageし直す
-// function refreshClone() {
-//   const target = document.querySelector(props.targetSelector)
-//   const wrapper = contentWrapperRef.value
-//   if (!target || !wrapper) return
-
-//   const clone = target.cloneNode(true)
-
-//   neutralizeFixedDescendants(target, clone)
-//   syncFormState(target, clone)
-  
-//   neutralizeFixedDescendants(target, clone)
-
-//   const originalCanvases = target.querySelectorAll('canvas')
-//   const clonedCanvases = clone.querySelectorAll('canvas')
-//   originalCanvases.forEach((origCanvas, i) => {
-//     const clonedCanvas = clonedCanvases[i]
-//     if (!clonedCanvas) return
-//     clonedCanvas.width = origCanvas.width
-//     clonedCanvas.height = origCanvas.height
-//     const ctx = clonedCanvas.getContext('2d')
-//     if (ctx) ctx.drawImage(origCanvas, 0, 0)
-//   })
-
-//   wrapper.innerHTML = ''
-//   wrapper.appendChild(clone)
-// }
 // function refreshClone() {
 //   const target = document.querySelector(props.targetSelector)
 //   const activeEl = activeBuffer.value === 'a' ? bufferARef.value : bufferBRef.value
@@ -331,16 +301,6 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 
-/* .magnifier-content {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  transform: scale(2);
-  pointer-events: none;
-  will-change: transform;
-} */
 .magnifier-content {
   position: fixed;
   left: 0;
