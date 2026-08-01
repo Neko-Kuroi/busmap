@@ -297,7 +297,7 @@ watch(locale, (newLocale) => {
 // 純粋な見た目の効果。個体ごとに高さ・大きさ・速度・開始タイミングを
 // ずらして、単調な繰り返しに見えないようにする
 // 雲全体のサイズ倍率。この数値だけ変えれば全ての雲が一括で拡大縮小される
-const CLOUD_SCALE = 2.5
+const CLOUD_SCALE = 3.5
 
 const CLOUD_SPRITES = [
   { id: 1, top: '8%', width: 160, height: 46, duration: '75s', delay: '0s' },
@@ -2104,7 +2104,7 @@ onMounted(async () => {
     rgba(255, 255, 255, 0) 72%
   );
   /* 「ごく薄い」濃さ：地図の視認性を優先しつつ、雲だと分かる程度は残す */
-  opacity: 0.35;
+  opacity: 0.45;
   animation-name: cloud-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
