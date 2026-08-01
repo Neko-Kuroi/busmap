@@ -29,7 +29,7 @@ const props = defineProps({
   diameter: { type: Number, default: 250 },
   targetSelector: { type: String, default: '#magnify-target' },
   minVisibleFraction: { type: Number, default: 0.2 },
-  initialVisibleFraction: { type: Number, default: 0.8 },
+  initialVisibleFraction: { type: Number, default: 0.9 },
   refreshInterval: { type: Number, default: 350 },
   // レンズ内の拡大率
   zoomFactor: { type: Number, default: 2.5 }
