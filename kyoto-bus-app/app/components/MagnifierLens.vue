@@ -288,20 +288,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* .magnifier-lens {
-  position: fixed;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    /* 0 0 0 1.5px rgba(255, 255, 255, 0.45), */
-    0 4px 10px rgba(50, 50, 50, 0.65);
-  cursor: grab;
-  z-index: 999999;
-  touch-action: none;
-  background: #eee;
-} */
-
 .magnifier-lens {
   position: fixed;
   left: 0;
@@ -327,8 +313,8 @@ onBeforeUnmount(() => {
   position: fixed;
   left: 0;
   top: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 50vw;
+  height: 50vh;
   transform: scale(2);
   pointer-events: none;
   will-change: transform;
